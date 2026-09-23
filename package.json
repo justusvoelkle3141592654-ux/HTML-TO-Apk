@@ -1,6 +1,6 @@
 {
   "name": "novachat",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "NovaChat \u2013 KI-Chat mit Dokumenten, offline und online. Desktop (Electron) und Android (Capacitor).",
   "main": "electron/main.js",
   "author": "NovaChat",
@@ -40,12 +40,6 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "icon": "resources/icon.png"
@@ -54,9 +48,6 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "artifactName": "NovaChat-Setup-${version}.${ext}"
-    },
-    "portable": {
-      "artifactName": "NovaChat-Portable-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -73,7 +64,10 @@
       "category": "public.app-category.productivity",
       "icon": "resources/icon.png",
       "artifactName": "NovaChat-${version}-mac.${ext}"
-    }
+    },
+    "asarUnpack": [
+      "www/models/**"
+    ]
   },
   "devDependencies": {
     "@capacitor-community/speech-recognition": "^7.0.1",
@@ -81,6 +75,7 @@
     "@capacitor/android": "^8.5.2",
     "@capacitor/app": "^8.1.1",
     "@capacitor/assets": "^3.0.5",
+    "@capacitor/browser": "^8.0.4",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/filesystem": "^8.1.3",

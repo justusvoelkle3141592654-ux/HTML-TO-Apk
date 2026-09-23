@@ -3,7 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..', 'www');
-const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+const types = { '.wasm': 'application/wasm', '.mjs': 'text/javascript', '.gguf': 'application/octet-stream', '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 const port = process.env.PORT || 8080;
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
@@ -12,7 +12,8 @@ http.createServer((req, res) => {
   if (!file.startsWith(root)) { res.writeHead(403); return res.end(); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Nicht gefunden'); }
-    res.writeHead(200, { 'Content-Type': (types[path.extname(file)] || 'application/octet-stream') + '; charset=utf-8' });
+    const type = types[path.extname(file)] || 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': /^text|json|javascript/.test(type) ? type + '; charset=utf-8' : type });
     res.end(data);
   });
 }).listen(port, () => console.log('NovaChat läuft auf http://localhost:' + port));

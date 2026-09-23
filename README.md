@@ -1,74 +1,88 @@
 # NovaChat
 
-KI-Chat-App im Stil bekannter Chat-Oberflächen – als **Desktop-App** (Windows, macOS, Linux) und als **Android-APK**.
-Chatten und Dokumente erstellen, online mit einem KI-Modell deiner Wahl oder offline mit dem eingebauten Assistenten.
+KI-Chat-App im Stil von ChatGPT – als **Desktop-App** (Windows, macOS, Linux) und als **Android-APK**.
+Mit eingebetteter **Offline-KI**, kostenloser **Online-KI ohne Anmeldung** und frei wählbaren **eigenen API-Schlüsseln**.
+
+## KI-Quellen (oben über den Modellnamen wählbar)
+
+| Quelle | Beschreibung |
+|---|---|
+| **Automatisch** (Standard) | Mit Internet: eigener API-Schlüssel oder kostenlose Online-KI. Ohne Internet: Offline-KI. |
+| **Nova Online** (kostenlos) | GPT-OSS 20B über [Pollinations.ai](https://pollinations.ai) – ohne Anmeldung, ohne Schlüssel. Nachrichten gehen an Pollinations.ai; Verfügbarkeit und Limits bestimmt der Anbieter. |
+| **Eigener API-Schlüssel** | OpenAI, Anthropic (Claude), Google Gemini, Mistral, Groq, OpenRouter, DeepSeek, xAI oder lokal Ollama / LM Studio. Schlüssel bleibt nur auf dem Gerät. |
+| **Offline-KI** | llama.cpp (über [wllama](https://github.com/ngxson/wllama)) läuft direkt auf dem Gerät, auch im Flugmodus. |
+| **Basis (ohne KI)** | Notfall-Modus: Rechnen, Umrechnen, Datum, Dokumentvorlagen. |
+
+### Offline-Modelle
+
+| Name | Modell | Größe | |
+|---|---|---|---|
+| Nova Mini | Qwen2.5 0.5B Instruct Q4_K_M | 491 MB | **in der App enthalten** |
+| Nova | Qwen2.5 1.5B Instruct Q4_K_M | 1,1 GB | Download in der App, deutlich bessere Antworten |
+| Llama 3.2 1B | Llama 3.2 1B Instruct Q4_K_M | 808 MB | Download in der App |
+| Gemma 2 2B | Gemma 2 2B Instruct Q4_K_M | 1,7 GB | Download in der App, für PCs mit ≥ 8 GB RAM |
+
+Das mitgelieferte Mini-Modell ist klein und macht öfter Fehler. Für bessere Offline-Antworten in den
+Einstellungen → Offline-KI „Nova“ herunterladen. Auf dem PC nutzt die Offline-KI mehrere Prozessorkerne
+und – wenn verfügbar – die Grafikkarte (WebGPU).
 
 ## Funktionen
 
-- Chat-Oberfläche mit Seitenleiste, Chat-Verlauf (gruppiert nach Datum), Suche, Umbenennen, Anheften, Löschen
-- Streaming-Antworten mit Markdown, Tabellen und Codeblöcken (mit Kopieren-Knopf und Syntaxfarben)
-- Nachrichten bearbeiten, Antworten neu generieren, kopieren, vorlesen
-- Dateien und Bilder anhängen (Textdateien werden gelesen, Bilder an Modelle mit Bildverständnis gesendet), Drag & Drop, Einfügen aus der Zwischenablage
-- Spracheingabe (im Browser, wo unterstützt)
-- **Canvas / Dokumente:** Die KI schreibt ein Dokument direkt in einen Editor; selbst bearbeiten, Vorschau, KI um Änderungen bitten, rückgängig machen, Export als `.md`, `.txt`, `.html`, `.doc`, Drucken/PDF (Desktop)
-- **Demo-Abo:** Free / Plus / Pro mit Upgrade-Dialog, Checkout und Kündigung – rein simuliert, es werden **keine Zahlungsdaten** abgefragt und nichts berechnet
-- Einstellungen: Design (hell/dunkel/System), Personalisierung (Name, Infos über dich, Antwortstil), KI-Verbindung, Datenexport/-import
-- Alle Daten bleiben lokal auf dem Gerät
-
-## Online & offline
-
-| Modus | Was passiert |
-|---|---|
-| **Online** | Einstellungen → KI-Verbindung: OpenAI-kompatible API (z. B. OpenAI, OpenRouter, Groq) oder Anthropic mit eigenem API-Schlüssel. |
-| **Lokal ohne Internet** | [Ollama](https://ollama.com) oder LM Studio auf dem PC installieren, Vorlage „Ollama (lokal)“ wählen, „Modelle laden“. Vom Handy aus: IP-Adresse des PCs im WLAN eintragen (z. B. `http://192.168.1.20:11434/v1`, Ollama mit `OLLAMA_HOST=0.0.0.0` starten). |
-| **Offline (eingebaut)** | Funktioniert immer, ist aber **keine echte KI**: Rechnen, Einheiten umrechnen, Datum/Uhrzeit, Textstatistik und Dokumentvorlagen (Brief, Bewerbung, Lebenslauf, Kündigung, Protokoll, Listen, Rezept, Wochenplan, Aufsatz, Notizen). |
-
-Im Modus „Automatisch“ wird die KI-Verbindung genutzt, wenn Internet vorhanden ist, sonst der Offline-Assistent.
+- Chat mit Streaming, Markdown, Tabellen, Code (Kopieren, Syntaxfarben), „Nachgedacht“-Anzeige
+- Antworten neu generieren mit Versionen (‹ 1/2 ›), Nachrichten bearbeiten, Daumen hoch/runter, Vorlesen
+- **Bilder erstellen** (kostenlos über Pollinations.ai; + → Bild erstellen oder „Erstelle ein Bild von …“), Bibliothek aller Bilder
+- **Canvas / Dokumente**: KI schreibt Dokumente, bearbeiten, KI um Änderungen bitten, Export als .md/.txt/.html/.doc, Drucken/PDF
+- **Dateien**: Bilder, **PDFs** (Text wird ausgelesen), Text- und Code-Dateien
+- **Sprachmodus** (Gespräch per Stimme), Diktieren, Vorlesen – im Browser und in der Android-App
+- **Gedächtnis**: „Merk dir, dass …“ / „Vergiss …“, verwaltbar unter Personalisierung
+- **Temporärer Chat**, **Archiv**, Anheften, Umbenennen, Suche, Teilen, Export/Import
+- **Demo-Abo** (Free/Plus/Pro) – rein simuliert, keine Zahlungsdaten, keine Kosten
+- Hell/Dunkel, Handy- und Desktop-Layout; alle Daten bleiben lokal auf dem Gerät
 
 ## Apps herunterladen (Cloud-Build)
 
-Bei jedem Push baut GitHub Actions automatisch alle Apps (`.github/workflows/build.yml`) und legt sie unter **Releases** ab:
+Bei jedem Push baut GitHub Actions automatisch alle Apps (`.github/workflows/build.yml`), bettet das
+Offline-Modell ein und legt sie unter **Releases** ab:
 
 - `NovaChat.apk` – Android (auf dem Handy öffnen, Installation aus unbekannten Quellen erlauben)
-- `NovaChat-Setup-….exe` / `NovaChat-Portable-….exe` – Windows
+- `NovaChat-Setup-….exe` – Windows
 - `….dmg` – macOS (Apple Silicon, nicht signiert: beim ersten Start Rechtsklick → Öffnen)
 - `….AppImage` – Linux
-
-Manuell starten: GitHub → Actions → „Apps bauen“ → „Run workflow“.
 
 ## Selbst bauen
 
 Voraussetzung: Node.js 22+.
 
 ```bash
-npm install
+npm install                 # kopiert auch wllama und pdf.js nach www/vendor
+npm run model:bundle        # lädt das Offline-Modell nach www/models (491 MB)
 
-# Desktop-App starten / Installer bauen
-npm start
-npm run dist:win      # oder dist:mac, dist:linux
+npm start                   # Desktop-App starten
+npm run dist:win            # Installer bauen (oder dist:mac, dist:linux)
+npm run serve               # Web-Version: http://localhost:8080
 
-# Web-Version im Browser (http://localhost:8080)
-npm run serve
-
-# Android-APK (benötigt JDK 21 und Android SDK)
-npm run android:build
-# Ergebnis: android/app/build/outputs/apk/debug/app-debug.apk
+npm run android:build       # APK (benötigt JDK 21 und Android SDK)
 ```
 
 ## Aufbau
 
 ```
-www/                 Oberfläche (HTML/CSS/JS, ohne Build-Schritt, läuft offline)
-  js/app.js          App-Logik (Chats, Canvas, Einstellungen, Demo-Abo)
-  js/providers.js    KI-Anbieter (OpenAI-kompatibel, Anthropic, offline)
-  js/offline.js      Eingebauter Offline-Assistent
-  js/markdown.js     Markdown-Renderer
-electron/main.js     Desktop-Hülle (Electron)
-capacitor.config.json  Android-Hülle (Capacitor)
-assets/, resources/  App-Icons und Splash-Screens
+www/                    Oberfläche (HTML/CSS/JS, ohne Build-Schritt)
+  js/app.js             Chat-Kern (Verlauf, Senden, Versionen, Canvas, Gedächtnis, Bilder)
+  js/panels.js          Einstellungen, Offline-KI, API-Schlüssel, Bibliothek, Suche, Sprachmodus, Demo-Abo
+  js/providers.js       KI-Quellen (kostenlos, eigener Schlüssel, offline, Basis)
+  js/local-ai.js        Offline-KI (wllama / llama.cpp)
+  js/models.js          Katalog der Offline-Modelle
+  js/speech.js          Spracherkennung und Sprachausgabe
+  js/ui.js              Symbole, Menüs, Dialoge, Dateien
+electron/main.js        Desktop-Hülle (Electron, app://-Protokoll)
+capacitor.config.json   Android-Hülle (Capacitor)
+scripts/                Vendor-Kopie, Modell-Einbettung, Android-Anpassungen, Testserver
 ```
 
 ## Hinweise
 
-- Die APK ist ein Debug-Build (für die eigene Nutzung). Für den Play Store wäre ein signierter Release-Build nötig.
-- Name und Logo sind eigenständig; Layout und Bedienung orientieren sich an gängigen KI-Chat-Apps.
+- Die APK ist ein Debug-Build zur eigenen Nutzung. Für den Play Store wäre ein signierter Release-Build nötig.
+- Name und Logo sind eigenständig; Layout und Bedienung orientieren sich an ChatGPT.
+- Websuche und „Deep Research“ sind nicht enthalten (dafür wäre ein Such-Dienst mit API-Schlüssel nötig).
+- Lizenzen: Qwen2.5 (Apache-2.0), wllama (MIT), pdf.js (Apache-2.0).
