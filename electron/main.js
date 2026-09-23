@@ -32,6 +32,8 @@ function registerAppProtocol() {
         status: 200,
         headers: {
           'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+          // Nach einem Update immer die neuen Dateien laden
+          'Cache-Control': 'no-store',
           // Ermöglicht SharedArrayBuffer -> Offline-KI nutzt mehrere Prozessorkerne
           'Cross-Origin-Opener-Policy': 'same-origin',
           'Cross-Origin-Embedder-Policy': 'credentialless',
@@ -90,6 +92,17 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
   registerAppProtocol();
+  // Beim ersten Start einer neuen Version alten Zwischenspeicher leeren
+  try {
+    const fs = require('fs');
+    const marker = path.join(app.getPath('userData'), 'last-version.txt');
+    const last = fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8') : '';
+    if (last !== app.getVersion()) {
+      session.defaultSession.clearCache();
+      session.defaultSession.clearCodeCaches({});
+      fs.writeFileSync(marker, app.getVersion());
+    }
+  } catch (e) { /* nicht kritisch */ }
   // Nur Mikrofon und Zwischenablage erlauben
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => {
     cb(['media', 'clipboard-sanitized-write', 'clipboard-read', 'persistent-storage'].includes(permission));

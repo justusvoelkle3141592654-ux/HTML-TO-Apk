@@ -120,6 +120,7 @@ svg { flex-shrink: 0; display: block; }
 .sb-top { display: flex; align-items: center; gap: 4px; padding: 8px 8px 4px 8px; height: 52px; }
 .logo-btn { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; }
 .logo-btn:hover { background: var(--bg-hover-sb); }
+.sb-version { font-size: 12px; color: var(--text-3); margin-left: 4px; }
 .sb-nav { padding: 4px 8px 8px; display: flex; flex-direction: column; gap: 1px; }
 .sb-item {
   display: flex; align-items: center; gap: 10px; width: 100%;

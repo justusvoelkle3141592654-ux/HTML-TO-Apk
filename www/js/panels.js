@@ -108,7 +108,7 @@
       pane.appendChild(row('Sprechgeschwindigkeit', 'Für Vorlesen und Sprachmodus', select([['0.8', 'Langsam'], ['1', 'Normal'], ['1.2', 'Schnell'], ['1.4', 'Sehr schnell']], String(s.speechRate || 1), function (v) { s.speechRate = parseFloat(v); N.saveSettings(); })));
     }
     pane.appendChild(row('Temporärer Chat', 'Chats werden nicht gespeichert und nicht fürs Gedächtnis genutzt.', button('Starten', '', function () { UI.closeModal(); N.newChat({ temporary: true }); })));
-    pane.appendChild(row('Version', null, el('span', { class: 'muted-small' }, APP + ' 3.0 · ' + (UI.isNative ? 'Android' : UI.isElectron ? 'Desktop' : 'Web'))));
+    pane.appendChild(row('Version', null, el('span', { class: 'muted-small' }, APP + ' ' + N.VERSION + ' · ' + (UI.isNative ? 'Android' : UI.isElectron ? 'Desktop' : 'Web'))));
   }
 
   // ---------- KI-Quelle ----------
@@ -1169,4 +1169,25 @@
   });
 
   N.init();
+
+  // „Was ist neu“ einmal pro Version anzeigen
+  (function () {
+    var key = 'novachat.seenVersion';
+    var seen = null;
+    try { seen = localStorage.getItem(key); localStorage.setItem(key, N.VERSION); } catch (e) { return; }
+    if (seen === N.VERSION) return;
+    var body = el('div', { class: 'modal-body' });
+    body.innerHTML = '<div class="md">' + window.Markdown.render(
+      '### Neu in ' + APP + ' ' + N.VERSION + '\n\n' +
+      '- **Work** (Seitenleiste): Aufgabe eingeben – die KI plant, arbeitet Schritt für Schritt und liefert fertige Dateien. Modell wählbar: **ChatGPT**, **Claude**, Nova Online' + (window.LocalAI.supported() ? ' oder Offline-KI' : '') + '.\n' +
+      '- **PowerPoint, Word, Excel** erstellen: über **+** oder „Erstelle eine PowerPoint über …“\n' +
+      '- **Projekte**: Chats mit gemeinsamen Anweisungen und Dateien\n' +
+      '- **KIs**: eigene KIs erstellen oder Vorlagen nutzen') + '</div>';
+    var foot = el('div', { class: 'modal-foot' });
+    var ok = el('button', { class: 'btn primary' }, 'Los geht’s');
+    ok.addEventListener('click', UI.closeModal);
+    foot.appendChild(ok);
+    var wrap = el('div'); wrap.appendChild(body); wrap.appendChild(foot);
+    setTimeout(function () { UI.openModal({ title: 'Was ist neu', body: wrap }); }, 400);
+  })();
 })();

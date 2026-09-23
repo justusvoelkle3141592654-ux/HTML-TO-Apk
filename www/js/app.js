@@ -7,7 +7,8 @@
   var Providers = window.Providers;
   var uid = function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); };
   var APP = 'NovaChat';
-  var N = window.Nova = { APP: APP };
+  var VERSION = '3.0';
+  var N = window.Nova = { APP: APP, VERSION: VERSION };
 
   // ======================================================================
   // Zustand & Speicher
@@ -112,6 +113,8 @@
 
   function paintStatic() {
     $('#sbLogo').innerHTML = UI.logo(24);
+    document.title = APP + ' ' + VERSION;
+    $('#sbVersion').textContent = APP + ' ' + VERSION;
     $('#sbClose').innerHTML = icon('sidebar');
     $('#navNew').innerHTML = icon('compose', 18) + '<span>Neuer Chat</span><span class="kbd">' + (navigator.platform.indexOf('Mac') >= 0 ? '⇧⌘O' : 'Strg+⇧+O') + '</span>';
     $('#navSearch').innerHTML = icon('search', 18) + '<span>Chats suchen</span>';

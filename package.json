@@ -1,6 +1,6 @@
 {
   "name": "novachat",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "NovaChat \u2013 KI-Chat mit Dokumenten, offline und online. Desktop (Electron) und Android (Capacitor).",
   "main": "electron/main.js",
   "author": "NovaChat",
