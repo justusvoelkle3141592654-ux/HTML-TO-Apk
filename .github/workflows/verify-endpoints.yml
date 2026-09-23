@@ -1,0 +1,49 @@
+name: Endpunkte prüfen (Modelle & kostenlose KI)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/verify-endpoints.yml'
+      - 'www/js/models.js'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Modell-Downloads (Hugging Face) prüfen
+        run: |
+          set +e
+          node -e "
+            global.window = {};
+            require('./www/js/models.js');
+            for (const m of window.ModelCatalog.list) console.log(m.url);
+          " > urls.txt || true
+          cat urls.txt
+          while read -r url; do
+            [ -z "$url" ] && continue
+            code=$(curl -sIL -o /dev/null -w '%{http_code}' "$url")
+            size=$(curl -sIL "$url" | grep -i '^content-length' | tail -1 | tr -d '\r' | awk '{print $2}')
+            cors=$(curl -sIL -H 'Origin: https://localhost' "$url" | grep -i '^access-control-allow-origin' | tail -1 | tr -d '\r')
+            echo "RESULT $code size=$size [$cors] $url"
+          done < urls.txt
+
+      - name: Kostenlose Online-KI (Pollinations) prüfen
+        run: |
+          set +e
+          echo "--- GET text.pollinations.ai/models"
+          curl -s -m 30 -w '\nHTTP %{http_code}\n' https://text.pollinations.ai/models | head -c 3000
+          echo
+          echo "--- POST text.pollinations.ai/openai (stream)"
+          curl -s -m 60 -N -w '\nHTTP %{http_code}\n' -H 'Content-Type: application/json' -H 'Origin: https://localhost' \
+            -d '{"model":"openai","stream":true,"messages":[{"role":"user","content":"Sag nur: Hallo"}]}' \
+            https://text.pollinations.ai/openai | head -c 3000
+          echo
+          echo "--- CORS-Header"
+          curl -s -m 30 -D - -o /dev/null -X OPTIONS -H 'Origin: https://localhost' -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type' https://text.pollinations.ai/openai
+          echo "--- Bild"
+          curl -s -m 90 -L -o img.jpg -w 'HTTP %{http_code} type=%{content_type} bytes=%{size_download}\n' \
+            'https://image.pollinations.ai/prompt/a%20red%20apple?width=256&height=256&nologo=true'
