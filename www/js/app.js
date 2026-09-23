@@ -282,7 +282,7 @@
     var items = [
       { header: true, label: 'Modell' },
       {
-        icon: 'auto', label: 'Automatisch', desc: 'Online die beste verfügbare KI, ohne Internet die Offline-KI',
+        icon: 'auto', label: 'Automatisch', desc: window.LocalAI.supported() ? 'Online die beste verfügbare KI, ohne Internet die Offline-KI' : 'Die beste verfügbare Online-KI',
         checked: s.engine === 'auto', onClick: function () { setEngine('auto'); }
       },
       {
@@ -296,8 +296,9 @@
         icon: 'key', label: 'Eigenen API-Schlüssel verbinden', desc: 'OpenAI, Gemini, Claude, Mistral, Groq …',
         onClick: function () { N.openSettings('keys'); }
       },
-      { header: true, label: 'Offline auf diesem Gerät' }
     ];
+    var offlineOk = window.LocalAI.supported();
+    if (offlineOk) items.push({ header: true, label: 'Offline auf diesem Gerät' });
     var ids = Object.keys(installed);
     ids.forEach(function (id) {
       var m = window.ModelCatalog.get(id);
@@ -308,7 +309,7 @@
         onClick: function () { s.localModel = id; setEngine('local'); }
       });
     });
-    if (!ids.length) items.push({ icon: 'download', label: 'Offline-KI herunterladen', desc: 'Läuft danach ohne Internet', onClick: function () { N.openSettings('offline'); } });
+    if (!ids.length && offlineOk) items.push({ icon: 'download', label: 'Offline-KI herunterladen', desc: 'Läuft danach ohne Internet', onClick: function () { N.openSettings('offline'); } });
     items.push(
       { icon: 'offline', label: 'Basis (ohne KI)', desc: 'Rechnen, Umrechnen, Vorlagen', checked: s.engine === 'basic', onClick: function () { setEngine('basic'); } },
       { sep: true },

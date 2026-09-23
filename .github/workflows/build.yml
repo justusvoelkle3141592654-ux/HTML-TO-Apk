@@ -35,9 +35,6 @@ jobs:
       - name: Abhängigkeiten installieren
         run: npm ci
 
-      - name: Offline-KI-Modell einbetten
-        run: node scripts/bundle-model.js
-
       - name: Android-Projekt erzeugen
         run: |
           npx cap add android
@@ -123,10 +120,10 @@ jobs:
           body: |
             Automatisch gebaut aus `${{ github.ref_name }}` (${{ github.sha }}).
 
-            Enthält die Offline-KI „Nova Mini“ (Qwen2.5 0.5B, Apache-2.0) – funktioniert ohne Internet.
+            Die Computer-Versionen enthalten die Offline-KI „Nova Mini“ (Qwen2.5 0.5B, Apache-2.0). Die Android-App nutzt die Online-KI.
 
             - **Android:** `NovaChat.apk` auf dem Handy herunterladen und öffnen (Installation aus unbekannten Quellen erlauben).
-            - **Windows:** `NovaChat-Setup-….exe` (Installer).
-            - **macOS:** `.dmg` (Apple-Silicon; beim ersten Start Rechtsklick → Öffnen).
-            - **Linux:** `.AppImage` (ausführbar machen und starten).
+            - **Windows:** `NovaChat-Setup.exe` herunterladen und ausführen.
+            - **macOS:** `NovaChat-Mac.dmg` (Apple Silicon; beim ersten Start Rechtsklick → Öffnen).
+            - **Linux:** `NovaChat.AppImage` (ausführbar machen und starten).
           files: files/*

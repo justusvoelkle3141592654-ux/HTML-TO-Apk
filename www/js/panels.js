@@ -70,6 +70,8 @@
       { id: 'data', icon: 'database', label: 'Datenkontrollen' },
       { id: 'plan', icon: 'card', label: 'Abo' }
     ];
+    if (!window.LocalAI.supported()) tabs = tabs.filter(function (t) { return t.id !== 'offline'; });
+    if (tab === 'offline' && !window.LocalAI.supported()) tab = 'ai';
     var body = el('div', { class: 'settings' });
     var nav = el('div', { class: 'settings-nav' });
     var pane = el('div', { class: 'settings-pane' });
@@ -123,6 +125,10 @@
       { id: 'local', icon: 'cpu', title: 'Offline-KI auf dem Gerät', desc: localCount ? localCount + ' Modell(e) installiert. Läuft komplett ohne Internet, deine Daten verlassen das Gerät nicht.' : 'Noch kein Modell installiert.', action: ['Modelle verwalten', 'offline'] },
       { id: 'basic', icon: 'offline', title: 'Basis (ohne KI)', desc: 'Nur einfache Funktionen: Rechnen, Umrechnen, Datum, Dokumentvorlagen.' }
     ];
+    if (!window.LocalAI.supported()) {
+      opts = opts.filter(function (o) { return o.id !== 'local'; });
+      opts[0].desc = 'Mit Internet: dein API-Schlüssel oder die kostenlose Online-KI. Ohne Internet: Basis-Modus. (Die Offline-KI gibt es in der Computer-Version.)';
+    }
     var list = el('div', { class: 'choice-list' });
     opts.forEach(function (o) {
       var c = el('label', { class: 'choice' + (s.engine === o.id ? ' on' : '') },
@@ -712,7 +718,7 @@
       { header: true, label: (s.userName || 'Du') + ' · ' + N.planName(s.plan) },
       { icon: 'sparkles', label: s.plan === 'free' ? 'Plan upgraden' : 'Abo verwalten', onClick: s.plan === 'free' ? openPlans : function () { openSettings('plan'); } },
       { icon: 'user', label: 'Personalisierung', onClick: function () { openSettings('personal'); } },
-      { icon: 'cpu', label: 'Offline-KI', onClick: function () { openSettings('offline'); } },
+      window.LocalAI.supported() ? { icon: 'cpu', label: 'Offline-KI', onClick: function () { openSettings('offline'); } } : null,
       { icon: 'gear', label: 'Einstellungen', onClick: function () { openSettings('general'); } },
       { sep: true },
       { icon: dark ? 'sun' : 'moon', label: dark ? 'Helles Design' : 'Dunkles Design', onClick: function () { s.theme = dark ? 'light' : 'dark'; N.saveSettings(); N.applyTheme(); } },

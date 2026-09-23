@@ -47,7 +47,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "NovaChat-Setup-${version}.${ext}"
+      "artifactName": "NovaChat-Setup.${ext}"
     },
     "linux": {
       "target": [
@@ -55,7 +55,7 @@
       ],
       "category": "Utility",
       "icon": "resources/icon.png",
-      "artifactName": "NovaChat-${version}.${ext}"
+      "artifactName": "NovaChat.${ext}"
     },
     "mac": {
       "target": [
@@ -63,7 +63,7 @@
       ],
       "category": "public.app-category.productivity",
       "icon": "resources/icon.png",
-      "artifactName": "NovaChat-${version}-mac.${ext}"
+      "artifactName": "NovaChat-Mac.${ext}"
     },
     "asarUnpack": [
       "www/models/**"

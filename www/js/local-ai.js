@@ -23,8 +23,10 @@
   function abs(p) { return new URL(p, location.href).href; }
   function emit() { listeners.forEach(function (fn) { try { fn(); } catch (e) { /* ignorieren */ } }); }
 
+  // Offline-KI nur auf Computern (Desktop-App / Browser), nicht in der Android-App
+  var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   function supported() {
-    return typeof WebAssembly === 'object' && typeof Worker === 'function';
+    return !isNative && typeof WebAssembly === 'object' && typeof Worker === 'function';
   }
 
   async function lib() {
@@ -58,6 +60,7 @@
   /** Liste der installierten Modelle: { id: { source: 'bundled'|'download', size, model? } } */
   async function refresh() {
     var res = {};
+    if (!supported()) { installedCache = res; emit(); return res; }
     (await bundled()).forEach(function (b) { res[b.id] = { source: 'bundled', size: b.size }; });
     if (supported()) {
       try {

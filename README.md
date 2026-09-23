@@ -3,6 +3,19 @@
 KI-Chat-App im Stil von ChatGPT – als **Desktop-App** (Windows, macOS, Linux) und als **Android-APK**.
 Mit eingebetteter **Offline-KI**, kostenloser **Online-KI ohne Anmeldung** und frei wählbaren **eigenen API-Schlüsseln**.
 
+## ⬇️ Herunterladen & installieren
+
+| Gerät | Download | Installation |
+|---|---|---|
+| **Windows** (Laptop/PC) | [NovaChat-Setup.exe](https://github.com/justusvoelkle3141592654-ux/HTML-TO-Apk/releases/latest/download/NovaChat-Setup.exe) | Datei öffnen → Windows-Warnung: „Weitere Informationen“ → „Trotzdem ausführen“ → Installieren |
+| **Android** (Handy) | [NovaChat.apk](https://github.com/justusvoelkle3141592654-ux/HTML-TO-Apk/releases/latest/download/NovaChat.apk) | Auf dem Handy öffnen → „Installation aus unbekannten Quellen“ erlauben → Installieren |
+| **Mac** (Apple Silicon) | [NovaChat-Mac.dmg](https://github.com/justusvoelkle3141592654-ux/HTML-TO-Apk/releases/latest/download/NovaChat-Mac.dmg) | Öffnen, App in „Programme“ ziehen, beim ersten Start Rechtsklick → „Öffnen“ |
+| **Linux** | [NovaChat.AppImage](https://github.com/justusvoelkle3141592654-ux/HTML-TO-Apk/releases/latest/download/NovaChat.AppImage) | Rechtsklick → Eigenschaften → „Als Programm ausführen“ erlauben, dann starten |
+
+Die **Offline-KI** ist nur in den Computer-Versionen (Windows, Mac, Linux) enthalten.
+Die Android-App nutzt die kostenlose Online-KI oder einen eigenen API-Schlüssel.
+Alle Versionen: [Releases](https://github.com/justusvoelkle3141592654-ux/HTML-TO-Apk/releases).
+
 ## KI-Quellen (oben über den Modellnamen wählbar)
 
 | Quelle | Beschreibung |
@@ -10,14 +23,14 @@ Mit eingebetteter **Offline-KI**, kostenloser **Online-KI ohne Anmeldung** und f
 | **Automatisch** (Standard) | Mit Internet: eigener API-Schlüssel oder kostenlose Online-KI. Ohne Internet: Offline-KI. |
 | **Nova Online** (kostenlos) | GPT-OSS 20B über [Pollinations.ai](https://pollinations.ai) – ohne Anmeldung, ohne Schlüssel. Nachrichten gehen an Pollinations.ai; Verfügbarkeit und Limits bestimmt der Anbieter. |
 | **Eigener API-Schlüssel** | OpenAI, Anthropic (Claude), Google Gemini, Mistral, Groq, OpenRouter, DeepSeek, xAI oder lokal Ollama / LM Studio. Schlüssel bleibt nur auf dem Gerät. |
-| **Offline-KI** | llama.cpp (über [wllama](https://github.com/ngxson/wllama)) läuft direkt auf dem Gerät, auch im Flugmodus. |
+| **Offline-KI** (nur Computer) | llama.cpp (über [wllama](https://github.com/ngxson/wllama)) läuft direkt auf dem Laptop/PC, auch ohne Internet. |
 | **Basis (ohne KI)** | Notfall-Modus: Rechnen, Umrechnen, Datum, Dokumentvorlagen. |
 
 ### Offline-Modelle
 
 | Name | Modell | Größe | |
 |---|---|---|---|
-| Nova Mini | Qwen2.5 0.5B Instruct Q4_K_M | 491 MB | **in der App enthalten** |
+| Nova Mini | Qwen2.5 0.5B Instruct Q4_K_M | 491 MB | **in der Computer-App enthalten** |
 | Nova | Qwen2.5 1.5B Instruct Q4_K_M | 1,1 GB | Download in der App, deutlich bessere Antworten |
 | Llama 3.2 1B | Llama 3.2 1B Instruct Q4_K_M | 808 MB | Download in der App |
 | Gemma 2 2B | Gemma 2 2B Instruct Q4_K_M | 1,7 GB | Download in der App, für PCs mit ≥ 8 GB RAM |
@@ -42,12 +55,7 @@ und – wenn verfügbar – die Grafikkarte (WebGPU).
 ## Apps herunterladen (Cloud-Build)
 
 Bei jedem Push baut GitHub Actions automatisch alle Apps (`.github/workflows/build.yml`), bettet das
-Offline-Modell ein und legt sie unter **Releases** ab:
-
-- `NovaChat.apk` – Android (auf dem Handy öffnen, Installation aus unbekannten Quellen erlauben)
-- `NovaChat-Setup-….exe` – Windows
-- `….dmg` – macOS (Apple Silicon, nicht signiert: beim ersten Start Rechtsklick → Öffnen)
-- `….AppImage` – Linux
+Offline-Modell in die Computer-Versionen ein und legt alles unter **Releases** ab (Links oben).
 
 ## Selbst bauen
 
