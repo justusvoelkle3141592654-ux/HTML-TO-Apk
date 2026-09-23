@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src * data: blob:; media-src 'self' data: blob:; font-src 'self' data:">
+  <meta name="theme-color" content="#212121">
+  <title>NovaChat</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Seitenleiste -->
+    <aside class="sidebar" id="sidebar" aria-label="Seitenleiste">
+      <div class="sb-top">
+        <button class="logo-btn" id="sbLogo" title="Neuer Chat" aria-label="Neuer Chat"></button>
+        <div class="spacer"></div>
+        <button class="icon-btn" id="sbClose" title="Seitenleiste schließen" aria-label="Seitenleiste schließen"></button>
+      </div>
+      <nav class="sb-nav">
+        <button class="sb-item" id="navNew"></button>
+        <button class="sb-item" id="navSearch"></button>
+        <button class="sb-item" id="navDocs"></button>
+      </nav>
+      <div class="sb-scroll" id="chatList"></div>
+      <div class="sb-bottom">
+        <button class="sb-upgrade" id="sbUpgrade"></button>
+        <button class="profile" id="profileBtn"></button>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+
+    <!-- Hauptbereich -->
+    <main class="main" id="main">
+      <header class="topbar">
+        <button class="icon-btn show-mobile" id="sbOpenMobile" aria-label="Seitenleiste öffnen"></button>
+        <button class="icon-btn show-collapsed" id="sbOpen" title="Seitenleiste öffnen" aria-label="Seitenleiste öffnen"></button>
+        <button class="icon-btn show-collapsed" id="topNewDesk" title="Neuer Chat" aria-label="Neuer Chat"></button>
+        <button class="model-btn" id="modelBtn" aria-haspopup="menu"></button>
+        <div class="spacer"></div>
+        <span class="net-pill" id="netPill" hidden></span>
+        <button class="upgrade-pill" id="topUpgrade" hidden></button>
+        <button class="icon-btn" id="shareBtn" title="Chat exportieren" aria-label="Chat exportieren"></button>
+        <button class="icon-btn show-mobile" id="topNew" aria-label="Neuer Chat"></button>
+      </header>
+
+      <section class="thread" id="thread">
+        <div class="thread-inner" id="messages"></div>
+      </section>
+
+      <div class="empty" id="empty">
+        <h1 id="emptyTitle">Womit kann ich helfen?</h1>
+      </div>
+
+      <div class="composer-wrap" id="composerWrap">
+        <button class="scroll-down" id="scrollDown" hidden aria-label="Nach unten scrollen"></button>
+        <form class="composer" id="composer" autocomplete="off">
+          <div class="attachments" id="attachments"></div>
+          <textarea id="input" rows="1" placeholder="Frag alles" aria-label="Nachricht"></textarea>
+          <div class="composer-row">
+            <button type="button" class="icon-btn round" id="plusBtn" title="Dateien und mehr" aria-label="Dateien und mehr"></button>
+            <button type="button" class="tool-chip" id="canvasChip" hidden></button>
+            <div class="spacer"></div>
+            <button type="button" class="icon-btn round" id="micBtn" title="Diktieren" aria-label="Diktieren"></button>
+            <button type="submit" class="send-btn" id="sendBtn" aria-label="Senden"></button>
+          </div>
+        </form>
+        <div class="suggestions" id="suggestions"></div>
+        <p class="disclaimer" id="disclaimer">NovaChat kann Fehler machen. Überprüfe wichtige Informationen.</p>
+      </div>
+      <div class="empty-bottom"></div>
+      <input type="file" id="fileInput" multiple hidden>
+      <input type="file" id="importInput" accept="application/json,.json" hidden>
+    </main>
+
+    <!-- Canvas / Dokument-Editor -->
+    <aside class="canvas" id="canvas" hidden aria-label="Dokument">
+      <header class="canvas-head">
+        <button class="icon-btn" id="cvClose" title="Schließen" aria-label="Schließen"></button>
+        <input class="cv-title" id="cvTitle" aria-label="Titel" spellcheck="false">
+        <div class="spacer"></div>
+        <div class="seg" id="cvMode">
+          <button type="button" data-mode="edit" class="on">Bearbeiten</button>
+          <button type="button" data-mode="preview">Vorschau</button>
+        </div>
+        <button class="icon-btn" id="cvUndo" title="Rückgängig" aria-label="Rückgängig"></button>
+        <button class="icon-btn" id="cvCopy" title="Kopieren" aria-label="Kopieren"></button>
+        <button class="icon-btn" id="cvExport" title="Exportieren" aria-label="Exportieren"></button>
+      </header>
+      <div class="canvas-body">
+        <textarea id="cvEditor" spellcheck="true" placeholder="Schreib los … (Markdown wird unterstützt)"></textarea>
+        <div class="md cv-preview" id="cvPreview" hidden></div>
+      </div>
+      <form class="cv-ask" id="cvAsk" autocomplete="off">
+        <input id="cvAskInput" placeholder="KI bitten, das Dokument zu ändern …" aria-label="Änderungswunsch">
+        <button type="submit" class="send-btn small" id="cvAskBtn" aria-label="Senden"></button>
+      </form>
+      <div class="cv-status" id="cvStatus"></div>
+    </aside>
+  </div>
+
+  <div id="menuLayer"></div>
+  <div id="modalLayer"></div>
+  <div id="toasts" aria-live="polite"></div>
+
+  <script src="js/markdown.js"></script>
+  <script src="js/offline.js"></script>
+  <script src="js/providers.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

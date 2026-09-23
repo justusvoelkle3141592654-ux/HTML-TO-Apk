@@ -1,0 +1,19 @@
+{
+  "appId": "de.novachat.app",
+  "appName": "NovaChat",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#212121",
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    }
+  },
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

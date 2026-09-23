@@ -1,0 +1,87 @@
+{
+  "name": "novachat",
+  "version": "1.0.0",
+  "description": "NovaChat \u2013 KI-Chat mit Dokumenten, offline und online. Desktop (Electron) und Android (Capacitor).",
+  "main": "electron/main.js",
+  "author": "NovaChat",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "serve": "node scripts/serve.js",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:linux": "electron-builder --linux --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "android:add": "cap add android && node scripts/patch-android.js",
+    "android:sync": "cap sync android",
+    "android:icons": "capacitor-assets generate --android",
+    "android:apk": "cd android && ./gradlew assembleDebug",
+    "android:build": "npm run android:add && npm run android:icons && cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "build": {
+    "appId": "de.novachat.app",
+    "productName": "NovaChat",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "electron/**/*",
+      "www/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "NovaChat-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "NovaChat-Portable-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "resources/icon.png",
+      "artifactName": "NovaChat-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "resources/icon.png",
+      "artifactName": "NovaChat-${version}-mac.${ext}"
+    }
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.3",
+    "@capacitor/share": "^8.0.2",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  }
+}

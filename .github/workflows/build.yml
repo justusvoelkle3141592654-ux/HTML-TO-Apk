@@ -1,0 +1,120 @@
+name: Apps bauen (Android-APK + Desktop)
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android-APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Android-Projekt erzeugen
+        run: |
+          npx cap add android
+          node scripts/patch-android.js
+          npx capacitor-assets generate --android
+          npx cap sync android
+
+      - name: APK bauen
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: APK umbenennen
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk NovaChat.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NovaChat-Android
+          path: NovaChat.apk
+
+  desktop:
+    name: Desktop (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            args: --win
+          - os: ubuntu-latest
+            name: Linux
+            args: --linux
+          - os: macos-latest
+            name: macOS
+            args: --mac
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Desktop-App bauen
+        run: npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NovaChat-${{ matrix.name }}
+          path: |
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.dmg
+          if-no-files-found: error
+
+  release:
+    name: Download-Seite (GitHub Release)
+    needs: [android, desktop]
+    if: always() && needs.android.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: NovaChat Build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: 'true'
+          body: |
+            Automatisch gebaut aus `${{ github.ref_name }}` (${{ github.sha }}).
+
+            - **Android:** `NovaChat.apk` auf dem Handy herunterladen und öffnen (Installation aus unbekannten Quellen erlauben).
+            - **Windows:** `NovaChat-Setup-….exe` (Installer) oder `NovaChat-Portable-….exe` (ohne Installation).
+            - **macOS:** `.dmg` (Apple-Silicon; beim ersten Start Rechtsklick → Öffnen).
+            - **Linux:** `.AppImage` (ausführbar machen und starten).
+          files: files/*
