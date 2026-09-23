@@ -4,6 +4,8 @@ on:
   push:
     paths-ignore:
       - '**.md'
+      - '.github/workflows/verify-endpoints.yml'
+      - '.github/workflows/mirror-test-model.yml'
   workflow_dispatch:
 
 permissions:

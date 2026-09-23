@@ -83,3 +83,15 @@ jobs:
             https://lmstudio.ai ; do
             echo "PAGE $(curl -s -m 20 -L -o /dev/null -w '%{http_code}' -A 'Mozilla/5.0' "$u") $u"
           done
+
+      - name: Google Gemini (OpenAI-kompatibel) genauer prüfen
+        run: |
+          set +e
+          for base in https://generativelanguage.googleapis.com/v1beta/openai https://generativelanguage.googleapis.com/v1beta/openai/ ; do
+            echo "--- POST $base/chat/completions"
+            curl -s -m 20 -w '\nHTTP %{http_code}\n' -H 'Content-Type: application/json' -H 'Authorization: Bearer ungueltig' \
+              -d '{"model":"gemini-2.0-flash","messages":[{"role":"user","content":"hi"}]}' "${base%/}/chat/completions" | head -c 600
+            echo "--- GET $base/models (ungültiger Schlüssel)"
+            curl -s -m 20 -w '\nHTTP %{http_code}\n' -H 'Authorization: Bearer ungueltig' "${base%/}/models" | head -c 400
+          done
+
