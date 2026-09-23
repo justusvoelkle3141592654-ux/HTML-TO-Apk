@@ -15,7 +15,11 @@ const files = [
   // PDF lesen (als .js gespeichert, damit jeder Server den richtigen MIME-Typ liefert)
   ['pdfjs-dist/build/pdf.min.mjs', 'pdfjs/pdf.min.js'],
   ['pdfjs-dist/build/pdf.worker.min.mjs', 'pdfjs/pdf.worker.min.js'],
-  ['pdfjs-dist/LICENSE', 'pdfjs/LICENSE']
+  ['pdfjs-dist/LICENSE', 'pdfjs/LICENSE'],
+  // Echte Office-Dateien erzeugen: PowerPoint, Word, Excel
+  ['pptxgenjs/dist/pptxgen.bundle.js', 'office/pptxgen.bundle.js'],
+  ['docx/dist/index.iife.js', 'office/docx.iife.js'],
+  ['exceljs/dist/exceljs.min.js', 'office/exceljs.min.js']
 ];
 
 let copied = 0;

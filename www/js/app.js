@@ -63,6 +63,12 @@
   var state = N.state = {
     chats: Store.get('chats', []),
     docs: Store.get('docs', []),
+    projects: Store.get('projects', []),
+    assistants: Store.get('assistants', []),
+    works: Store.get('works', []),
+    projectId: null,
+    assistantId: null,
+    view: 'chat',
     settings: loadSettings(),
     currentId: null,
     tempChat: null,
@@ -111,6 +117,8 @@
     $('#navSearch').innerHTML = icon('search', 18) + '<span>Chats suchen</span>';
     $('#navLibrary').innerHTML = icon('library', 18) + '<span>Bibliothek</span>';
     $('#navDocs').innerHTML = icon('doc', 18) + '<span>Dokumente</span>';
+    $('#navWork').innerHTML = icon('briefcase', 18) + '<span>Work</span><span class="nav-badge">Agent</span>';
+    $('#navGpts').innerHTML = icon('bot', 18) + '<span>KIs</span>';
     $('#sbOpenMobile').innerHTML = icon('menu', 22);
     $('#sbOpen').innerHTML = icon('sidebar');
     $('#topNewDesk').innerHTML = icon('compose');
@@ -144,7 +152,8 @@
   function renderSidebar() {
     var list = $('#chatList');
     list.innerHTML = '';
-    var chats = state.chats.filter(function (c) { return !c.archived; })
+    renderSidebarExtras(list);
+    var chats = state.chats.filter(function (c) { return !c.archived && !c.projectId; })
       .sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); });
     if (!chats.length) list.appendChild(el('div', { class: 'sb-empty' }, 'Noch keine Chats. Starte einfach eine Unterhaltung.'));
     var groups = [];
@@ -163,6 +172,69 @@
       list.appendChild(sec);
     });
     renderProfile();
+  }
+
+  function renderSidebarExtras(list) {
+    // Projekte
+    var sec = el('div', { class: 'sb-group' });
+    sec.appendChild(el('h3', null, 'Projekte'));
+    var add = el('button', { class: 'sb-item small' }, icon('folderPlus', 18) + '<span>Neues Projekt</span>');
+    add.addEventListener('click', function () { N.editProject(null); });
+    sec.appendChild(add);
+    state.projects.slice().sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); }).forEach(function (pr) {
+      var b = el('div', { class: 'chat-item' + (state.projectId === pr.id && state.view === 'chat' ? ' active' : '') });
+      var link = el('button', { class: 'ci-link' }, '<span class="pr-dot" style="color:' + (pr.color || '#7b8cff') + '">' + icon('folder', 16) + '</span><span class="ci-title">' + esc(pr.name) + '</span>');
+      link.addEventListener('click', function () { openProject(pr.id); closeMobileSidebar(); });
+      var more = el('button', { class: 'ci-more', 'aria-label': 'Optionen' }, icon('more', 18));
+      more.addEventListener('click', function (e) {
+        e.stopPropagation();
+        UI.openMenu(more, [
+          { icon: 'pencil', label: 'Projekt bearbeiten', onClick: function () { N.editProject(pr); } },
+          { icon: 'trash', label: 'Projekt löschen', danger: true, onClick: function () { N.deleteProject(pr); } }
+        ]);
+      });
+      b.appendChild(link); b.appendChild(more);
+      sec.appendChild(b);
+    });
+    list.appendChild(sec);
+    // Zuletzt genutzte eigene KIs
+    var used = state.assistants.filter(function (a) { return a.lastUsed; }).sort(function (a, b) { return b.lastUsed - a.lastUsed; }).slice(0, 4);
+    if (used.length) {
+      var g = el('div', { class: 'sb-group' });
+      g.appendChild(el('h3', null, 'Meine KIs'));
+      used.forEach(function (a) {
+        var b = el('div', { class: 'chat-item' + (state.assistantId === a.id && !state.currentId && state.view === 'chat' ? ' active' : '') });
+        var link = el('button', { class: 'ci-link' }, '<span class="as-emoji">' + esc(a.emoji || '🤖') + '</span><span class="ci-title">' + esc(a.name) + '</span>');
+        link.addEventListener('click', function () { startAssistant(a.id); closeMobileSidebar(); });
+        b.appendChild(link);
+        g.appendChild(b);
+      });
+      list.appendChild(g);
+    }
+  }
+
+  function openProject(id) {
+    showView('chat');
+    newChat({ project: id });
+  }
+  function startAssistant(id) {
+    var a = N.getAssistant(id);
+    if (!a) return;
+    a.lastUsed = Date.now();
+    persist('assistants');
+    showView('chat');
+    newChat({ assistant: id });
+  }
+
+  /** Umschalten zwischen Chat und Work */
+  function showView(v) {
+    state.view = v;
+    $('#main').classList.toggle('is-work', v === 'work');
+    $('#workView').hidden = v !== 'work';
+    $('#navWork').classList.toggle('on', v === 'work');
+    if (v === 'work' && N.renderWork) N.renderWork();
+    renderSidebar();
+    closeMobileSidebar();
   }
 
   function chatItem(c) {
@@ -256,6 +328,11 @@
   function renderTopbar() {
     var s = state.settings;
     var engine = Providers.resolve(s);
+    var chatNow = currentChat();
+    var ctxProj = N.getProject && N.getProject(chatNow ? chatNow.projectId : state.projectId);
+    var ctxAsst = N.getAssistant && N.getAssistant(chatNow ? chatNow.assistantId : state.assistantId);
+    $('#ctxLabel').hidden = !(ctxProj || ctxAsst);
+    $('#ctxLabel').innerHTML = ctxProj ? icon('folder', 14) + '<span>' + esc(ctxProj.name) + '</span>' : ctxAsst ? '<span>' + esc((ctxAsst.emoji || '🤖') + ' ' + ctxAsst.name) + '</span>' : '';
     $('#modelBtn').innerHTML = '<span>' + APP + '</span>' +
       '<span class="sub">' + esc(Providers.label(s, engine)) + '</span>' + icon('chevron', 16);
     var net = $('#netPill');
@@ -344,10 +421,39 @@
     var box = $('#messages');
     box.innerHTML = '';
     var empty = !chat || !chat.messages.length;
+    if (!empty) $('#projectPanel').hidden = true;
     var temp = state.temporary || (chat && chat.temp);
     $('#main').classList.toggle('is-empty', empty);
     $('#main').classList.toggle('is-temp', !!temp);
     if (empty) {
+      var proj = state.projectId && N.getProject(state.projectId);
+      var asst = state.assistantId && N.getAssistant(state.assistantId);
+      $('#projectPanel').hidden = !proj;
+      if (proj) {
+        $('#emptyTitle').innerHTML = '<span class="pr-dot" style="color:' + (proj.color || '#7b8cff') + '">' + icon('folder', 26) + '</span> ' + esc(proj.name);
+        $('#emptySub').textContent = proj.instructions ? proj.instructions.slice(0, 160) + (proj.instructions.length > 160 ? ' …' : '') : 'Neue Chats in diesem Projekt nutzen die Projekt-Anweisungen und -Dateien.';
+        $('#emptySub').hidden = false;
+        N.renderProjectPanel(proj);
+        $('#suggestions').innerHTML = '';
+        renderTopbar();
+        $('#scrollDown').hidden = true;
+        return;
+      }
+      if (asst) {
+        $('#emptyTitle').innerHTML = '<span class="as-emoji big">' + esc(asst.emoji || '🤖') + '</span>' + esc(asst.name);
+        $('#emptySub').textContent = asst.desc || '';
+        $('#emptySub').hidden = !asst.desc;
+        var box = $('#suggestions');
+        box.innerHTML = '';
+        (asst.starters || []).filter(Boolean).slice(0, 4).forEach(function (st) {
+          var b = el('button', { type: 'button' }, '<span>' + esc(st) + '</span>');
+          b.addEventListener('click', function () { input.value = st; autosize(); sendMessage(); });
+          box.appendChild(b);
+        });
+        renderTopbar();
+        $('#scrollDown').hidden = true;
+        return;
+      }
       if (temp) {
         $('#emptyTitle').textContent = 'Temporärer Chat';
         $('#emptySub').textContent = 'Dieser Chat wird nicht im Verlauf gespeichert und nicht für das Gedächtnis verwendet.';
@@ -357,6 +463,7 @@
         var greet = n ? ['Hallo ' + n + ', womit kann ich helfen?', 'Was steht heute an, ' + n + '?', 'Schön, dich zu sehen, ' + n + '.']
           : ['Womit kann ich helfen?', 'Was steht heute an?', 'Bereit, wenn du es bist.', 'Woran arbeitest du gerade?'];
         $('#emptyTitle').textContent = greet[Math.floor(Math.random() * greet.length)];
+        $('#projectPanel').hidden = true;
         $('#emptySub').hidden = true;
       }
       renderSuggestions();
@@ -451,6 +558,22 @@
       content.innerHTML = '<span class="typing-dot"></span>';
     } else {
       content.innerHTML = window.Markdown.render(m.content || '');
+    }
+    if (Array.isArray(m.files) && m.files.length) {
+      m.files.forEach(function (f) {
+        var meta = window.Office.META[f.kind];
+        var card = el('div', { class: 'file-card' },
+          '<span class="fc-ic" style="background:' + meta.color + '">' + icon(f.kind === 'pptx' ? 'slides' : f.kind === 'xlsx' ? 'table' : 'fileWord', 20) + '</span>' +
+          '<span class="fc-main"><b>' + esc(window.Office.fileName(f)) + '</b><small>' + meta.label + ' · ' + esc(window.Office.summary(f)) + '</small></span>');
+        var pv = el('button', { class: 'btn small', type: 'button' }, 'Vorschau');
+        pv.addEventListener('click', function () { N.previewFile(f); });
+        var dl = el('button', { class: 'btn small primary', type: 'button' }, icon('download', 14) + 'Herunterladen');
+        dl.addEventListener('click', function () { N.downloadFile(f, dl); });
+        var act = el('span', { class: 'fc-act' });
+        act.appendChild(pv); act.appendChild(dl);
+        card.appendChild(act);
+        wrap.appendChild(card);
+      });
     }
     if (m.pending && m.images === 'loading') {
       wrap.appendChild(el('div', { class: 'img-skeleton' }, '<span class="shimmer">Bild wird erstellt …</span>'));
@@ -587,6 +710,9 @@
     if (state.streaming) stopStreaming();
     if (opts.temporary != null) state.temporary = opts.temporary;
     else if (!opts.keepTemp) state.temporary = false;
+    state.projectId = opts.project || null;
+    state.assistantId = opts.assistant || null;
+    if (state.view !== 'chat') { state.view = 'chat'; $('#main').classList.remove('is-work'); $('#workView').hidden = true; $('#navWork').classList.remove('on'); }
     state.currentId = null;
     state.tempChat = null;
     state.attachments = [];
@@ -603,6 +729,10 @@
     state.temporary = false;
     state.tempChat = null;
     state.currentId = id;
+    var c = currentChat();
+    state.projectId = c ? c.projectId || null : null;
+    state.assistantId = c ? c.assistantId || null : null;
+    if (state.view !== 'chat') { state.view = 'chat'; $('#main').classList.remove('is-work'); $('#workView').hidden = true; $('#navWork').classList.remove('on'); }
     renderThread();
     renderSidebar();
   }
@@ -618,6 +748,8 @@
     var chat = currentChat();
     if (!chat) {
       chat = { id: uid(), title: makeTitle(firstText), created: Date.now(), updated: Date.now(), messages: [] };
+      if (state.projectId) { chat.projectId = state.projectId; var pr = N.getProject(state.projectId); if (pr) { pr.updated = Date.now(); persist('projects'); } }
+      if (state.assistantId) chat.assistantId = state.assistantId;
       if (state.temporary) { chat.temp = true; state.tempChat = chat; }
       else state.chats.push(chat);
       state.currentId = chat.id;
@@ -660,7 +792,10 @@
 
   var TOOLS = {
     canvas: { icon: 'canvas', label: 'Canvas', placeholder: 'Beschreibe das Dokument, das ich schreiben soll …' },
-    image: { icon: 'image', label: 'Bild', placeholder: 'Beschreibe das Bild …' }
+    image: { icon: 'image', label: 'Bild', placeholder: 'Beschreibe das Bild …' },
+    pptx: { icon: 'slides', label: 'PowerPoint', placeholder: 'Worüber soll die Präsentation sein?' },
+    docx: { icon: 'fileWord', label: 'Word', placeholder: 'Was soll im Word-Dokument stehen?' },
+    xlsx: { icon: 'table', label: 'Excel', placeholder: 'Welche Tabelle soll ich erstellen?' }
   };
   function setTool(t) {
     state.tool = t;
@@ -676,6 +811,11 @@
       { sep: true },
       { icon: 'image', label: 'Bild erstellen', desc: 'Kostenlos, braucht Internet', checked: state.tool === 'image', onClick: function () { setTool(state.tool === 'image' ? null : 'image'); input.focus(); } },
       { icon: 'canvas', label: 'Canvas', desc: 'Dokument mit KI schreiben', checked: state.tool === 'canvas', onClick: function () { setTool(state.tool === 'canvas' ? null : 'canvas'); input.focus(); } },
+      { sep: true },
+      { icon: 'slides', label: 'PowerPoint erstellen', desc: 'Echte .pptx-Präsentation', checked: state.tool === 'pptx', onClick: function () { setTool(state.tool === 'pptx' ? null : 'pptx'); input.focus(); } },
+      { icon: 'fileWord', label: 'Word-Dokument erstellen', desc: 'Echte .docx-Datei', checked: state.tool === 'docx', onClick: function () { setTool(state.tool === 'docx' ? null : 'docx'); input.focus(); } },
+      { icon: 'table', label: 'Excel-Tabelle erstellen', desc: 'Echte .xlsx-Datei mit Formeln', checked: state.tool === 'xlsx', onClick: function () { setTool(state.tool === 'xlsx' ? null : 'xlsx'); input.focus(); } },
+      { sep: true },
       { icon: 'doc', label: 'Leeres Dokument', desc: 'Selbst schreiben', onClick: function () { createDoc('Unbenanntes Dokument', ''); } }
     ], { align: 'left', above: true });
   }
@@ -690,6 +830,10 @@
     return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej; r.readAsText(file); });
   }
   N.readAsText = readAsText;
+  N.readFileText = async function (f) {
+    if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) return (await readPdf(f)).text;
+    return readAsText(f);
+  };
   function shrinkImage(dataUrl, max) {
     return new Promise(function (resolve) {
       var img = new Image();
@@ -798,9 +942,10 @@
   // Senden & Generieren
   // ======================================================================
   var IMAGE_RE = /^(?:bitte\s+)?(?:(?:erstell|generier|zeichne|zeichn|mal|mach|entwirf|kreier|design)\w*\s+(?:mir\s+)?(?:bitte\s+)?(?:ein(?:e|en)?\s+)?(?:[\wäöüß-]+\s+){0,3}?(?:bild|foto|grafik|illustration|zeichnung|gemälde|logo|poster|wallpaper|hintergrundbild|comic)\b|(?:generate|create|draw|make)\s+(?:me\s+)?an?\s+(?:[\w-]+\s+){0,2}?(?:image|picture|photo|drawing|logo)\b)/i;
+  var FILE_TASKS = { pptx: 1, docx: 1, xlsx: 1 };
   function detectTask(text) {
     if (IMAGE_RE.test(String(text || '').trim())) return 'image';
-    return null;
+    return window.Office.detect(text);
   }
 
   function buildSystemPrompt(task, engine, chat) {
@@ -822,6 +967,14 @@
     if (task === 'document') {
       parts.push('AUFGABE: Schreibe ein vollständiges Dokument gemäß der Anfrage. Gib AUSSCHLIESSLICH den Dokumentinhalt in Markdown aus – ohne Einleitung, ohne Kommentar davor oder danach. Beginne mit einer Überschrift der Ebene 1 (# Titel).');
     }
+    if (task && FILE_TASKS[task]) parts.push(window.Office.PROMPTS[task]);
+    var project = chat && chat.projectId && N.getProject ? N.getProject(chat.projectId) : null;
+    if (project) {
+      parts.push('Dieser Chat gehört zum Projekt „' + project.name + '“.' + (project.instructions ? '\nProjekt-Anweisungen:\n' + project.instructions : ''));
+      (project.files || []).forEach(function (f) { parts.push('Projektdatei „' + f.name + '“:\n' + String(f.data).slice(0, 30000)); });
+    }
+    var assistant = chat && chat.assistantId && N.getAssistant ? N.getAssistant(chat.assistantId) : null;
+    if (assistant) parts.push('Du trittst als „' + assistant.name + '“ auf. Anweisungen:\n' + assistant.instructions);
     if (task === 'edit-document') {
       parts.push('AUFGABE: Du bearbeitest ein bestehendes Dokument. Gib AUSSCHLIESSLICH die vollständige, überarbeitete Fassung des Dokuments in Markdown aus – ohne Kommentar davor oder danach.');
     }
@@ -834,6 +987,9 @@
       if (m.role === 'assistant' && m.docId) {
         var d = getDoc(m.docId);
         content = d ? '[Dokument „' + d.title + '“ erstellt]\n\n' + d.content.slice(0, 20000) : '[Dokument erstellt]';
+      }
+      if (m.role === 'assistant' && Array.isArray(m.files) && m.files.length) {
+        content = m.files.map(function (f) { return '[' + window.Office.META[f.kind].label + ' erstellt: ' + f.spec.title + ']\n' + window.Office.asText(f).slice(0, 8000); }).join('\n\n');
       }
       if (m.role === 'assistant' && Array.isArray(m.images) && m.images.length) {
         content = '[Bild erstellt: ' + (m.images[0].request || m.images[0].prompt) + ']' + (content ? '\n\n' + content : '');
@@ -866,7 +1022,7 @@
     renderAttachments();
     renderThread();
     renderSidebar();
-    var task = opts.tool === 'canvas' ? 'document' : opts.tool === 'image' ? 'image' : detectTask(text);
+    var task = opts.tool === 'canvas' ? 'document' : opts.tool ? opts.tool : detectTask(text);
     var mem = null;
     if (!chat.temp && state.settings.memoryEnabled && !task) {
       var action = memoryAction(text);
@@ -895,7 +1051,7 @@
   }
 
   function snapshot(m) {
-    return { content: m.content, reasoning: m.reasoning, reasoningMs: m.reasoningMs, docId: m.docId, images: m.images, error: m.error, model: m.model, engine: m.engine, memory: m.memory, feedback: m.feedback };
+    return { content: m.content, reasoning: m.reasoning, reasoningMs: m.reasoningMs, docId: m.docId, images: m.images, files: m.files, error: m.error, model: m.model, engine: m.engine, memory: m.memory, feedback: m.feedback };
   }
 
   function regenerate(chat, m, opts) {
@@ -910,7 +1066,7 @@
       m.vi = m.versions.length - 1;
     }
     chat.messages = chat.messages.slice(0, idx + 1);
-    var task = Array.isArray(m.images) ? 'image' : m.docId ? 'document' : null;
+    var task = Array.isArray(m.images) ? 'image' : m.docId ? 'document' : (Array.isArray(m.files) && m.files[0]) ? m.files[0].kind : m.fileTask || null;
     renderThread();
     generate(chat, Object.assign({ target: m, task: task }, opts || {}));
   }
@@ -967,7 +1123,7 @@
     var task = opts.task || null;
 
     Object.assign(msg, {
-      content: '', reasoning: '', reasoningMs: 0, error: null, images: null, docId: null, feedback: null,
+      content: '', reasoning: '', reasoningMs: 0, error: null, images: null, docId: null, files: null, fileTask: FILE_TASKS[task] ? task : null, feedback: null,
       pending: true, status: null, thinking: engine === 'free', engine: engine, model: Providers.label(settings, engine), time: Date.now()
     });
     if (opts.memory) msg.memory = opts.memory;
@@ -984,6 +1140,8 @@
       setCanvasBusy(true, 'KI schreibt …');
     }
     if (task === 'image') msg.thinking = false;
+    var fileRaw = '';
+    if (FILE_TASKS[task]) msg.status = window.Office.META[task].label + ' wird erstellt …';
 
     var box = $('#messages');
     var node = renderMessage(chat, msg);
@@ -1018,6 +1176,23 @@
     try {
       if (task === 'image') {
         await runImage(msg, lastUser.content, settings, engine, controller.signal, schedule);
+      } else if (FILE_TASKS[task]) {
+        var spec;
+        if (engine === 'basic') {
+          spec = window.Office.fromBasic(task, lastUser.content);
+        } else {
+          await Providers.stream({
+            settings: settings, engine: engine, messages: history, system: buildSystemPrompt(task, engine, chat),
+            signal: controller.signal, task: task, maxTokens: 3000,
+            onDelta: function (d) { fileRaw += d; msg.status = window.Office.META[task].label + ' wird erstellt … (' + fileRaw.length + ' Zeichen)'; schedule(); },
+            onReasoning: function (r) { if (!t0) t0 = Date.now(); msg.reasoning += r; schedule(); },
+            onStatus: function (st) { if (st) { msg.status = st; schedule(); } }
+          });
+          if (controller.signal.aborted) throw Object.assign(new Error('abgebrochen'), { name: 'AbortError' });
+          spec = window.Office.parse(task, fileRaw, lastUser.content);
+        }
+        msg.files = [{ id: uid(), kind: task, spec: spec, created: Date.now() }];
+        if (msg.reasoning && t0) msg.reasoningMs = Date.now() - t0;
       } else if (msg.memory && engine === 'basic') {
         msg.content = msg.memory.type === 'add'
           ? 'Alles klar – das habe ich mir gemerkt: „' + msg.memory.text + '“.'
@@ -1072,7 +1247,7 @@
         }
         persist('docs', true);
       }
-      if (!msg.content && !msg.error && !msg.docId && !(Array.isArray(msg.images) && msg.images.length) && !controller.signal.aborted) {
+      if (!msg.content && !msg.error && !msg.docId && !(Array.isArray(msg.images) && msg.images.length) && !(Array.isArray(msg.files) && msg.files.length) && !controller.signal.aborted) {
         msg.error = 'Es kam keine Antwort. Bitte erneut versuchen.';
       }
       if (msg.versions) msg.versions[msg.vi || 0] = snapshot(msg);
@@ -1303,6 +1478,13 @@
     $('#navSearch').addEventListener('click', function () { N.openSearch(); });
     $('#navLibrary').addEventListener('click', function () { N.openLibrary(); });
     $('#navDocs').addEventListener('click', function () { N.openDocs(); });
+    $('#navWork').addEventListener('click', function () { showView(state.view === 'work' ? 'chat' : 'work'); });
+    $('#navGpts').addEventListener('click', function () { N.openAssistants(); });
+    $('#ctxLabel').addEventListener('click', function () {
+      var c = currentChat();
+      var pid = c ? c.projectId : state.projectId;
+      if (pid) openProject(pid);
+    });
     $('#sbUpgrade').addEventListener('click', function () { N.openPlans(); });
     $('#topUpgrade').addEventListener('click', function () { N.openPlans(); });
     $('#profileBtn').addEventListener('click', function () { N.openProfileMenu(); });
@@ -1450,7 +1632,8 @@
     applyTheme: applyTheme, planName: planName, renderSidebar: renderSidebar, renderTopbar: renderTopbar,
     renderThread: renderThread, newChat: newChat, openChat: openChat, archiveChat: archiveChat,
     openCanvas: openCanvas, closeCanvas: closeCanvas, createDoc: createDoc, setCvMode: setCvMode,
-    exportDocMenu: exportDocMenu, sendText: sendText, stopStreaming: stopStreaming, setEngine: setEngine,
+    exportDocMenu: exportDocMenu, sendText: sendText, showView: showView, openProject: openProject, startAssistant: startAssistant,
+    buildSystemPrompt: buildSystemPrompt, uid: uid, stopStreaming: stopStreaming, setEngine: setEngine,
     closeMobileSidebar: closeMobileSidebar, editorFocus: function () { editor.focus(); },
     init: init
   });

@@ -108,7 +108,7 @@
       pane.appendChild(row('Sprechgeschwindigkeit', 'Für Vorlesen und Sprachmodus', select([['0.8', 'Langsam'], ['1', 'Normal'], ['1.2', 'Schnell'], ['1.4', 'Sehr schnell']], String(s.speechRate || 1), function (v) { s.speechRate = parseFloat(v); N.saveSettings(); })));
     }
     pane.appendChild(row('Temporärer Chat', 'Chats werden nicht gespeichert und nicht fürs Gedächtnis genutzt.', button('Starten', '', function () { UI.closeModal(); N.newChat({ temporary: true }); })));
-    pane.appendChild(row('Version', null, el('span', { class: 'muted-small' }, APP + ' 2.0 · ' + (UI.isNative ? 'Android' : UI.isElectron ? 'Desktop' : 'Web'))));
+    pane.appendChild(row('Version', null, el('span', { class: 'muted-small' }, APP + ' 3.0 · ' + (UI.isNative ? 'Android' : UI.isElectron ? 'Desktop' : 'Web'))));
   }
 
   // ---------- KI-Quelle ----------
@@ -734,7 +734,13 @@
       '- **Kostenlose Online-KI:** ' + Providers.FREE.name + ' (GPT-OSS 20B über Pollinations.ai), ohne Anmeldung.\n' +
       '- **Eigener API-Schlüssel:** OpenAI, Anthropic, Google Gemini, Mistral, Groq, OpenRouter, DeepSeek, xAI oder lokal Ollama/LM Studio.\n' +
       '- **Offline-KI:** läuft auf dem Gerät, auch im Flugmodus. Weitere Modelle unter *Einstellungen → Offline-KI*.\n\n' +
+      '### Work (Agent)\n\n' +
+      'In der Seitenleiste **Work** öffnen, Modell wählen (ChatGPT, Claude, Nova Online oder Offline-KI) und eine Aufgabe eingeben. Die KI plant, arbeitet Schritt für Schritt und liefert fertige PowerPoint-, Word- und Excel-Dateien. ChatGPT und Claude brauchen einen eigenen API-Schlüssel des Anbieters.\n\n' +
+      '### Projekte & eigene KIs\n\n' +
+      '- **Projekte:** Chats mit gemeinsamen Anweisungen und Dateien bündeln (Seitenleiste → Neues Projekt)\n' +
+      '- **KIs:** eigene KIs mit festen Anweisungen und Gesprächsstartern erstellen oder Vorlagen nutzen\n\n' +
       '### Funktionen\n\n' +
+      '- **PowerPoint, Word, Excel:** + → „PowerPoint erstellen“ usw. oder einfach „Erstelle eine PowerPoint über …“\n' +
       '- **Bilder erstellen:** + → Bild erstellen, oder „Erstelle ein Bild von …“ (braucht Internet)\n' +
       '- **Canvas:** + → Canvas schreibt Dokumente, die du bearbeiten und exportieren kannst\n' +
       '- **Dateien:** Bilder, PDFs, Text- und Code-Dateien anhängen\n' +
@@ -918,11 +924,248 @@
     return true;
   }
 
+
+  // ======================================================================
+  // Dateien (PowerPoint, Word, Excel): Vorschau & Download
+  // ======================================================================
+  function previewFile(f) {
+    var body = el('div', { class: 'modal-body file-preview' }, window.Office.preview(f));
+    var foot = el('div', { class: 'modal-foot' });
+    var dl = button(icon('download', 14) + 'Herunterladen (' + window.Office.META[f.kind].ext + ')', 'primary', function () { downloadFile(f, dl); });
+    foot.appendChild(dl);
+    var wrap = el('div', { style: 'display:flex;flex-direction:column;min-height:0' });
+    wrap.appendChild(body); wrap.appendChild(foot);
+    UI.openModal({ title: esc(window.Office.fileName(f)), body: wrap, size: 'wide' });
+  }
+
+  async function downloadFile(f, btn) {
+    var orig = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Wird erstellt …'; }
+    try {
+      var blob = await window.Office.build(f);
+      await UI.saveFile(window.Office.fileName(f), blob, window.Office.META[f.kind].mime);
+    } catch (e) {
+      toast('Datei konnte nicht erstellt werden: ' + (e.message || e), 5000);
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+    }
+  }
+
+  // ======================================================================
+  // Projekte
+  // ======================================================================
+  var PROJECT_COLORS = [['#7b8cff', 'Blau'], ['#34d399', 'Grün'], ['#f59e0b', 'Orange'], ['#f472b6', 'Pink'], ['#a78bfa', 'Lila'], ['#f87171', 'Rot']];
+  function getProject(id) { return id ? state.projects.find(function (p) { return p.id === id; }) || null : null; }
+
+  function editProject(pr) {
+    var isNew = !pr;
+    var draft = pr ? JSON.parse(JSON.stringify(pr)) : { id: N.uid(), name: '', instructions: '', files: [], color: PROJECT_COLORS[0][0], created: Date.now() };
+    var body = el('div', { class: 'modal-body' });
+    body.appendChild(col('Name', field(draft.name, 'z. B. Umzug 2026, Bachelorarbeit …', function (v) { draft.name = v; })));
+    body.appendChild(row('Farbe', null, select(PROJECT_COLORS, draft.color, function (v) { draft.color = v; })));
+    var ins = el('textarea', { class: 'field', placeholder: 'Wie soll die KI in diesem Projekt antworten? Was ist wichtig? (z. B. „Antworte als Projektleiter, kurz und mit To-dos“)' });
+    ins.value = draft.instructions;
+    ins.addEventListener('input', function () { draft.instructions = ins.value; });
+    body.appendChild(col('Anweisungen', ins, 'Gelten für alle Chats in diesem Projekt.'));
+    var files = el('div', { class: 'memory-list' });
+    function renderFiles() {
+      files.innerHTML = '';
+      if (!draft.files.length) files.appendChild(el('div', { class: 'list-empty small' }, 'Noch keine Dateien. Text-, Code- und PDF-Dateien werden als Wissen genutzt.'));
+      draft.files.forEach(function (f) {
+        var r = el('div', { class: 'memory-item' }, icon('doc', 16) + '<span>' + esc(f.name) + ' <small class="muted-small">(' + Math.round(f.data.length / 1000) + ' Tsd. Zeichen)</small></span>');
+        var del = el('button', { class: 'icon-btn', 'aria-label': 'Entfernen' }, icon('trash', 16));
+        del.addEventListener('click', function () { draft.files = draft.files.filter(function (x) { return x !== f; }); renderFiles(); });
+        r.appendChild(del);
+        files.appendChild(r);
+      });
+    }
+    renderFiles();
+    var fileInput = el('input', { type: 'file', multiple: true, hidden: true });
+    fileInput.addEventListener('change', async function () {
+      for (var i = 0; i < fileInput.files.length; i++) {
+        var f = fileInput.files[i];
+        try { draft.files.push({ name: f.name, data: String(await N.readFileText(f)).slice(0, 200000) }); }
+        catch (e) { toast('Konnte nicht gelesen werden: ' + f.name); }
+      }
+      fileInput.value = '';
+      renderFiles();
+    });
+    var fc = col('Dateien (Wissen)', files);
+    fc.appendChild(fileInput);
+    fc.appendChild(button(icon('plus', 14) + 'Datei hinzufügen', '', function () { fileInput.click(); }));
+    body.appendChild(fc);
+    var foot = el('div', { class: 'modal-foot' });
+    foot.appendChild(button('Abbrechen', '', function () { UI.closeModal(); }));
+    foot.appendChild(button(isNew ? 'Projekt erstellen' : 'Speichern', 'primary', function () {
+      if (!draft.name.trim()) { toast('Bitte einen Namen eingeben.'); return; }
+      draft.name = draft.name.trim().slice(0, 80);
+      draft.updated = Date.now();
+      if (isNew) state.projects.push(draft);
+      else Object.assign(pr, draft);
+      N.persist('projects', true);
+      UI.closeModal();
+      N.openProject(draft.id);
+    }));
+    var wrap = el('div', { style: 'display:flex;flex-direction:column;min-height:0' });
+    wrap.appendChild(body); wrap.appendChild(foot);
+    UI.openModal({ title: isNew ? 'Neues Projekt' : 'Projekt bearbeiten', body: wrap });
+  }
+
+  function deleteProject(pr) {
+    var chats = state.chats.filter(function (c) { return c.projectId === pr.id; });
+    UI.confirmDialog({ title: 'Projekt löschen?', text: '<b>' + esc(pr.name) + '</b> und ' + chats.length + ' Chat(s) darin werden gelöscht.', ok: 'Löschen', danger: true }).then(function (ok) {
+      if (!ok) return;
+      state.projects = state.projects.filter(function (x) { return x !== pr; });
+      state.chats = state.chats.filter(function (c) { return c.projectId !== pr.id; });
+      N.persist('projects', true); N.persist('chats', true);
+      N.newChat();
+    });
+  }
+
+  function renderProjectPanel(pr) {
+    var box = $('#projectPanel');
+    box.innerHTML = '';
+    var top = el('div', { class: 'pp-actions' });
+    top.appendChild(button(icon('pencil', 14) + 'Anweisungen & Dateien', '', function () { editProject(pr); }));
+    (pr.files || []).slice(0, 4).forEach(function (f) { top.appendChild(el('span', { class: 'pp-file' }, icon('doc', 14) + esc(f.name))); });
+    box.appendChild(top);
+    var chats = state.chats.filter(function (c) { return c.projectId === pr.id && !c.archived; }).sort(function (a, b) { return b.updated - a.updated; });
+    box.appendChild(el('h4', null, 'Chats in diesem Projekt'));
+    if (!chats.length) box.appendChild(el('div', { class: 'list-empty small' }, 'Noch keine Chats – schreib oben die erste Nachricht.'));
+    chats.forEach(function (c) {
+      var last = c.messages[c.messages.length - 1];
+      var r = el('button', { class: 'result', type: 'button' }, icon('compose', 18) + '<span class="r-main"><b>' + esc(c.title) + '</b><small>' + esc(last ? String(last.content || '').slice(0, 90) : '') + '</small></span><small class="muted-small">' + new Date(c.updated).toLocaleDateString('de-DE') + '</small>');
+      r.addEventListener('click', function () { N.openChat(c.id); });
+      box.appendChild(r);
+    });
+  }
+
+  // ======================================================================
+  // Eigene KIs (wie „GPTs“)
+  // ======================================================================
+  var BUILTIN_ASSISTANTS = [
+    { id: 'tpl-translate', emoji: '🌍', name: 'Übersetzer', desc: 'Übersetzt Texte natürlich und stilsicher in jede Sprache.', instructions: 'Du bist ein professioneller Übersetzer. Erkenne die Ausgangssprache. Wenn der Nutzer nichts anderes sagt: Deutsch → Englisch, andere Sprachen → Deutsch. Gib nur die Übersetzung aus, danach bei Bedarf kurze Hinweise zu Redewendungen.', starters: ['Übersetze ins Englische: ', 'Was heißt „Feierabend“ auf Spanisch?', 'Übersetze diese E-Mail ins Französische:'] },
+    { id: 'tpl-job', emoji: '💼', name: 'Bewerbungs-Coach', desc: 'Hilft bei Anschreiben, Lebenslauf und Vorstellungsgespräch.', instructions: 'Du bist ein erfahrener Bewerbungs-Coach in Deutschland. Stelle gezielte Rückfragen (Stelle, Erfahrung, Stärken), bevor du Texte schreibst. Gib konkrete, ehrliche Verbesserungsvorschläge.', starters: ['Hilf mir bei einem Anschreiben', 'Übe mit mir ein Vorstellungsgespräch', 'Prüfe meinen Lebenslauf'] },
+    { id: 'tpl-math', emoji: '📐', name: 'Mathe-Nachhilfe', desc: 'Erklärt Mathe Schritt für Schritt – geduldig und verständlich.', instructions: 'Du bist ein geduldiger Mathe-Nachhilfelehrer. Erkläre Schritt für Schritt, verwende einfache Worte und Beispiele. Verrate Lösungen nicht sofort, sondern führe mit Fragen hin, außer der Nutzer will die Lösung.', starters: ['Erkläre mir den Satz des Pythagoras', 'Wie löse ich 3x + 5 = 20?', 'Was ist eine Ableitung?'] },
+    { id: 'tpl-cook', emoji: '🍳', name: 'Koch-Assistent', desc: 'Rezepte aus dem, was du im Kühlschrank hast.', instructions: 'Du bist ein kreativer Koch. Schlage alltagstaugliche Rezepte mit Zutatenliste (Mengen für 2 Personen) und nummerierten Schritten vor. Frage nach Allergien oder Vorlieben, wenn unklar.', starters: ['Ich habe Nudeln, Tomaten und Feta', 'Ein schnelles vegetarisches Abendessen', 'Plane meine Wochenmahlzeiten'] },
+    { id: 'tpl-editor', emoji: '✍️', name: 'Text-Lektor', desc: 'Korrigiert Rechtschreibung, Grammatik und Stil.', instructions: 'Du bist ein Lektor. Korrigiere Rechtschreibung, Grammatik und Zeichensetzung. Gib zuerst den korrigierten Text aus, dann eine kurze Liste der wichtigsten Änderungen. Erhalte Ton und Inhalt.', starters: ['Korrigiere diesen Text:', 'Mach diese E-Mail freundlicher:', 'Kürze diesen Absatz:'] },
+    { id: 'tpl-travel', emoji: '🧳', name: 'Reiseplaner', desc: 'Plant Reisen mit Tagesablauf, Budget und Tipps.', instructions: 'Du bist ein Reiseplaner. Erstelle übersichtliche Tagespläne mit Uhrzeiten, geschätzten Kosten und Insider-Tipps. Frage nach Budget, Reisezeitraum und Interessen, wenn unklar.', starters: ['Plane 3 Tage in Rom', 'Wochenendtrip in Deutschland unter 300 €', 'Packliste für Skiurlaub'] }
+  ];
+  function getAssistant(id) {
+    if (!id) return null;
+    return state.assistants.find(function (a) { return a.id === id; }) || BUILTIN_ASSISTANTS.find(function (a) { return a.id === id; }) || null;
+  }
+
+  function openAssistants() {
+    N.closeMobileSidebar();
+    var body = el('div', { class: 'modal-body' });
+    function render() {
+      body.innerHTML = '<div class="plans-head"><h2>KIs</h2><p>Eigene KIs mit festen Anweisungen erstellen – z. B. für Bewerbungen, Nachhilfe oder deine Firma.</p></div>';
+      var create = el('button', { class: 'as-card create', type: 'button' }, '<span class="as-emoji big">＋</span><span><b>Eigene KI erstellen</b><small>Name, Anweisungen und Gesprächsstarter festlegen</small></span>');
+      create.addEventListener('click', function () { editAssistant(null); });
+      var grid = el('div', { class: 'as-grid' });
+      grid.appendChild(create);
+      state.assistants.forEach(function (a) { grid.appendChild(card(a, true)); });
+      body.appendChild(el('h4', { class: 'as-h' }, 'Meine KIs'));
+      body.appendChild(grid);
+      body.appendChild(el('h4', { class: 'as-h' }, 'Vorlagen'));
+      var g2 = el('div', { class: 'as-grid' });
+      BUILTIN_ASSISTANTS.forEach(function (a) { g2.appendChild(card(a, false)); });
+      body.appendChild(g2);
+    }
+    function card(a, own) {
+      var c = el('div', { class: 'as-card', role: 'button', tabindex: '0' }, '<span class="as-emoji big">' + esc(a.emoji || '🤖') + '</span><span><b>' + esc(a.name) + '</b><small>' + esc(a.desc || '') + '</small></span>');
+      c.addEventListener('click', function () { while (UI.modalOpen()) UI.closeModal(); N.startAssistant(a.id); });
+      var more = el('button', { class: 'icon-btn r-act', 'aria-label': 'Optionen' }, icon('more', 18));
+      more.addEventListener('click', function (e) {
+        e.stopPropagation();
+        UI.openMenu(more, own ? [
+          { icon: 'pencil', label: 'Bearbeiten', onClick: function () { editAssistant(a); } },
+          { icon: 'trash', label: 'Löschen', danger: true, onClick: function () { state.assistants = state.assistants.filter(function (x) { return x !== a; }); N.persist('assistants', true); render(); N.renderSidebar(); } }
+        ] : [
+          { icon: 'copy', label: 'Als eigene KI anpassen', onClick: function () { var copy = JSON.parse(JSON.stringify(a)); copy.id = null; copy.name += ' (angepasst)'; editAssistant(copy); } }
+        ], { align: 'right' });
+      });
+      c.appendChild(more);
+      return c;
+    }
+    render();
+    UI.openModal({ title: '', body: body, size: 'wide', onClose: function () { N.renderSidebar(); } });
+  }
+
+  function editAssistant(a) {
+    var isNew = !a || !a.id;
+    var draft = a ? JSON.parse(JSON.stringify(a)) : { emoji: '🤖', name: '', desc: '', instructions: '', starters: ['', '', ''] };
+    if (isNew) draft.id = N.uid();
+    while ((draft.starters || []).length < 3) (draft.starters = draft.starters || []).push('');
+    var body = el('div', { class: 'modal-body' });
+    var top = el('div', { class: 'input-with-btn' });
+    var emo = field(draft.emoji, '🤖', function (v) { draft.emoji = v.trim().slice(0, 4) || '🤖'; });
+    emo.style.maxWidth = '70px'; emo.style.textAlign = 'center';
+    top.appendChild(emo);
+    top.appendChild(field(draft.name, 'Name, z. B. „Steuer-Helfer“', function (v) { draft.name = v; }));
+    body.appendChild(col('Symbol & Name', top));
+    body.appendChild(col('Beschreibung', field(draft.desc, 'Was kann diese KI?', function (v) { draft.desc = v; })));
+    var ins = el('textarea', { class: 'field', placeholder: 'Was macht die KI? Wie soll sie sich verhalten? Was soll sie vermeiden?' });
+    ins.style.minHeight = '140px';
+    ins.value = draft.instructions;
+    ins.addEventListener('input', function () { draft.instructions = ins.value; });
+    body.appendChild(col('Anweisungen', ins));
+    var st = el('div', { class: 'starter-list' });
+    draft.starters.slice(0, 4).forEach(function (sv, i) { st.appendChild(field(sv, 'Gesprächsstarter ' + (i + 1), function (v) { draft.starters[i] = v; })); });
+    body.appendChild(col('Gesprächsstarter', st));
+    var foot = el('div', { class: 'modal-foot' });
+    foot.appendChild(button('Abbrechen', '', function () { UI.closeModal(); }));
+    foot.appendChild(button(isNew ? 'Erstellen' : 'Speichern', 'primary', function () {
+      if (!draft.name.trim() || !draft.instructions.trim()) { toast('Bitte Name und Anweisungen ausfüllen.'); return; }
+      draft.name = draft.name.trim().slice(0, 60);
+      draft.starters = draft.starters.map(function (x) { return x.trim(); }).filter(Boolean);
+      var existing = state.assistants.find(function (x) { return x.id === draft.id; });
+      if (existing) Object.assign(existing, draft); else state.assistants.push(draft);
+      N.persist('assistants', true);
+      while (UI.modalOpen()) UI.closeModal();
+      N.startAssistant(draft.id);
+      toast('KI „' + draft.name + '“ gespeichert');
+    }));
+    var wrap = el('div', { style: 'display:flex;flex-direction:column;min-height:0' });
+    wrap.appendChild(body); wrap.appendChild(foot);
+    UI.openModal({ title: isNew ? 'Eigene KI erstellen' : 'KI bearbeiten', body: wrap });
+  }
+
+  // ---------- Schlüssel je Anbieter (für Work) ----------
+  function getPresetKey(id) {
+    var s = state.settings;
+    if (currentPresetId(s) === id) return id === 'anthropic' ? s.anthropic.apiKey : s.openai.apiKey;
+    return s.apiKeys[id] || '';
+  }
+  function setPresetKey(id, key) {
+    var s = state.settings;
+    s.apiKeys[id] = key;
+    if (currentPresetId(s) === id) { if (id === 'anthropic') s.anthropic.apiKey = key; else s.openai.apiKey = key; }
+    N.saveSettings();
+  }
+  function getPresetModel(id) {
+    var s = state.settings;
+    if (currentPresetId(s) === id) return id === 'anthropic' ? s.anthropic.model : s.openai.model;
+    return s.apiModels[id] || '';
+  }
+  function setPresetModel(id, model) {
+    var s = state.settings;
+    s.apiModels[id] = model;
+    if (currentPresetId(s) === id) { if (id === 'anthropic') s.anthropic.model = model; else s.openai.model = model; }
+    N.saveSettings();
+  }
+
   Object.assign(N, {
     openSettings: openSettings, openPlans: openPlans, openSearch: openSearch, openDocs: openDocs,
     openLibrary: openLibrary, viewImage: viewImage, downloadImage: downloadImage,
     openProfileMenu: openProfileMenu, openHelp: openHelp, shareChat: shareChat,
-    importAll: importAll, openVoiceMode: openVoiceMode, closeVoiceMode: closeVoiceMode
+    importAll: importAll, openVoiceMode: openVoiceMode, closeVoiceMode: closeVoiceMode,
+    previewFile: previewFile, downloadFile: downloadFile,
+    getProject: getProject, editProject: editProject, deleteProject: deleteProject, renderProjectPanel: renderProjectPanel,
+    getAssistant: getAssistant, openAssistants: openAssistants, editAssistant: editAssistant,
+    getPresetKey: getPresetKey, setPresetKey: setPresetKey, getPresetModel: getPresetModel, setPresetModel: setPresetModel,
+    UIparts: { row: row, toggle: toggle, select: select, button: button, col: col, field: field, link: link }
   });
 
   N.init();

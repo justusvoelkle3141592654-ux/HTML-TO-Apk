@@ -41,6 +41,11 @@ und – wenn verfügbar – die Grafikkarte (WebGPU).
 
 ## Funktionen
 
+- **Work (Agent):** Aufgabe eingeben – die KI plant, arbeitet Schritt für Schritt und liefert fertige Dateien. Modell wählbar: **ChatGPT** (OpenAI) oder **Claude** (Anthropic) mit eigenem API-Schlüssel, **Nova Online** (kostenlos) oder Offline-KI (Computer)
+- **Echte Office-Dateien:** PowerPoint (.pptx), Word (.docx), Excel (.xlsx mit Formeln und Summenzeile) – mit Vorschau und Download
+- **Projekte:** Chats mit gemeinsamen Anweisungen und Wissensdateien bündeln
+- **Eigene KIs** (wie „GPTs“): Name, Symbol, Anweisungen, Gesprächsstarter; 6 Vorlagen (Übersetzer, Bewerbungs-Coach, Mathe-Nachhilfe, Koch-Assistent, Text-Lektor, Reiseplaner)
+
 - Chat mit Streaming, Markdown, Tabellen, Code (Kopieren, Syntaxfarben), „Nachgedacht“-Anzeige
 - Antworten neu generieren mit Versionen (‹ 1/2 ›), Nachrichten bearbeiten, Daumen hoch/runter, Vorlesen
 - **Bilder erstellen** (kostenlos über Pollinations.ai; + → Bild erstellen oder „Erstelle ein Bild von …“), Bibliothek aller Bilder
@@ -93,4 +98,5 @@ scripts/                Vendor-Kopie, Modell-Einbettung, Android-Anpassungen, Te
 - Die APK ist ein Debug-Build zur eigenen Nutzung. Für den Play Store wäre ein signierter Release-Build nötig.
 - Name und Logo sind eigenständig; Layout und Bedienung orientieren sich an ChatGPT.
 - Websuche und „Deep Research“ sind nicht enthalten (dafür wäre ein Such-Dienst mit API-Schlüssel nötig).
-- Lizenzen: Qwen2.5 (Apache-2.0), wllama (MIT), pdf.js (Apache-2.0).
+- ChatGPT und Claude werden über die offiziellen APIs mit deinem eigenen Schlüssel genutzt (kostenpflichtig beim Anbieter), nicht über die ChatGPT-/Claude-Webseiten.
+- Lizenzen: Qwen2.5 (Apache-2.0), wllama (MIT), pdf.js (Apache-2.0), pptxgenjs (MIT), docx (MIT), exceljs (MIT).

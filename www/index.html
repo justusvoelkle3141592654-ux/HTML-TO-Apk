@@ -23,6 +23,8 @@
         <button class="sb-item" id="navNew"></button>
         <button class="sb-item" id="navSearch"></button>
         <button class="sb-item" id="navLibrary"></button>
+        <button class="sb-item" id="navWork"></button>
+        <button class="sb-item" id="navGpts"></button>
         <button class="sb-item" id="navDocs"></button>
       </nav>
       <div class="sb-scroll" id="chatList"></div>
@@ -39,6 +41,7 @@
         <button class="icon-btn show-mobile" id="sbOpenMobile" aria-label="Seitenleiste öffnen"></button>
         <button class="icon-btn show-collapsed" id="sbOpen" title="Seitenleiste öffnen" aria-label="Seitenleiste öffnen"></button>
         <button class="icon-btn show-collapsed" id="topNewDesk" title="Neuer Chat" aria-label="Neuer Chat"></button>
+        <button class="ctx-label" id="ctxLabel" hidden></button>
         <button class="model-btn" id="modelBtn" aria-haspopup="menu"></button>
         <div class="spacer"></div>
         <span class="net-pill" id="netPill" hidden></span>
@@ -71,9 +74,11 @@
           </div>
         </form>
         <div class="suggestions" id="suggestions"></div>
+        <div class="project-panel" id="projectPanel" hidden></div>
         <p class="disclaimer" id="disclaimer">NovaChat kann Fehler machen. Überprüfe wichtige Informationen.</p>
       </div>
       <div class="empty-bottom"></div>
+      <section class="work-view" id="workView" hidden></section>
       <input type="file" id="fileInput" multiple hidden>
       <input type="file" id="importInput" accept="application/json,.json" hidden>
     </main>
@@ -112,10 +117,12 @@
   <script src="js/models.js"></script>
   <script src="js/local-ai.js"></script>
   <script src="js/speech.js"></script>
+  <script src="js/office.js"></script>
   <script src="js/offline.js"></script>
   <script src="js/providers.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/work.js"></script>
   <script src="js/panels.js"></script>
 </body>
 </html>

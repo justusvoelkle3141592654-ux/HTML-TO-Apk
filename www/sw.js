@@ -1,9 +1,9 @@
 /* Service Worker: macht die Web-Version offline nutzbar (nur bei Aufruf über http/https). */
-const CACHE = 'novachat-v2';
+const CACHE = 'novachat-v3';
 const ASSETS = [
   './', './index.html', './css/styles.css',
   './js/markdown.js', './js/models.js', './js/local-ai.js', './js/speech.js', './js/offline.js',
-  './js/providers.js', './js/ui.js', './js/app.js', './js/panels.js',
+  './js/providers.js', './js/ui.js', './js/app.js', './js/panels.js', './js/office.js', './js/work.js',
   './icons/icon.svg', './icons/icon-512.png', './manifest.webmanifest'
 ];
 self.addEventListener('install', (e) => {
