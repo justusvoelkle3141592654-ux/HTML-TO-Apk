@@ -47,3 +47,39 @@ jobs:
           echo "--- Bild"
           curl -s -m 90 -L -o img.jpg -w 'HTTP %{http_code} type=%{content_type} bytes=%{size_download}\n' \
             'https://image.pollinations.ai/prompt/a%20red%20apple?width=256&height=256&nologo=true'
+
+      - name: API-Anbieter für eigene Schlüssel prüfen (ohne Schlüssel -> 401 erwartet)
+        run: |
+          set +e
+          for base in \
+            https://api.openai.com/v1 \
+            https://generativelanguage.googleapis.com/v1beta/openai \
+            https://api.mistral.ai/v1 \
+            https://api.groq.com/openai/v1 \
+            https://openrouter.ai/api/v1 \
+            https://api.deepseek.com/v1 \
+            https://api.x.ai/v1 ; do
+            code=$(curl -s -m 20 -o body.txt -w '%{http_code}' "$base/models")
+            cors=$(curl -s -m 20 -D - -o /dev/null -X OPTIONS -H 'Origin: https://localhost' -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: authorization,content-type' "$base/chat/completions" | grep -i '^access-control-allow-origin' | tr -d '\r')
+            echo "API $code [$cors] $base :: $(head -c 160 body.txt | tr '\n' ' ')"
+          done
+          code=$(curl -s -m 20 -o /dev/null -w '%{http_code}' https://api.anthropic.com/v1/models)
+          echo "API $code https://api.anthropic.com/v1/models"
+
+      - name: Seiten zum Erstellen von API-Schlüsseln prüfen
+        run: |
+          set +e
+          for u in \
+            https://platform.openai.com/api-keys \
+            https://aistudio.google.com/apikey \
+            https://console.mistral.ai/api-keys \
+            https://console.groq.com/keys \
+            https://openrouter.ai/keys \
+            https://platform.deepseek.com/api_keys \
+            https://console.x.ai \
+            https://console.anthropic.com/settings/keys \
+            https://ollama.com/download \
+            https://lmstudio.ai ; do
+            echo "PAGE $(curl -s -m 20 -L -o /dev/null -w '%{http_code}' -A 'Mozilla/5.0' "$u") $u"
+          done

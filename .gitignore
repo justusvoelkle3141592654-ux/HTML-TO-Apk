@@ -4,3 +4,5 @@ android/
 ios/
 *.log
 .DS_Store
+www/vendor/
+www/models/*.gguf
