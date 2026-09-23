@@ -1,0 +1,26 @@
+name: Test-Modell bereitstellen
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/mirror-test-model.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Modell laden
+        run: curl -sSfL -o qwen2.5-0.5b-instruct-q4_k_m.gguf https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf && ls -la
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test-model
+          name: Test-Modell (nur für automatische Tests)
+          prerelease: true
+          make_latest: 'false'
+          body: Kopie von Qwen2.5-0.5B-Instruct (Apache-2.0) für automatische Tests. Nicht zum Herunterladen gedacht.
+          files: qwen2.5-0.5b-instruct-q4_k_m.gguf
