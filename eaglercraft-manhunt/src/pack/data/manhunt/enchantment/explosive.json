@@ -1,0 +1,75 @@
+{
+  "description": {
+    "text": "Explosiv",
+    "color": "red"
+  },
+  "supported_items": "#minecraft:enchantable/bow",
+  "weight": 1,
+  "max_level": 1,
+  "min_cost": {
+    "base": 1,
+    "per_level_above_first": 0
+  },
+  "max_cost": {
+    "base": 1,
+    "per_level_above_first": 0
+  },
+  "anvil_cost": 8,
+  "slots": [
+    "mainhand"
+  ],
+  "effects": {
+    "minecraft:hit_block": [
+      {
+        "effect": {
+          "type": "minecraft:explode",
+          "radius": 2.5,
+          "block_interaction": "none",
+          "attribute_to_user": true,
+          "small_particle": {
+            "type": "minecraft:explosion"
+          },
+          "large_particle": {
+            "type": "minecraft:explosion_emitter"
+          },
+          "sound": "minecraft:entity.generic.explode",
+          "damage_type": "minecraft:explosion"
+        },
+        "requirements": {
+          "condition": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:entity_type": "#minecraft:arrows"
+          }
+        }
+      }
+    ],
+    "minecraft:post_attack": [
+      {
+        "enchanted": "attacker",
+        "affected": "victim",
+        "effect": {
+          "type": "minecraft:explode",
+          "radius": 2.5,
+          "block_interaction": "none",
+          "attribute_to_user": true,
+          "small_particle": {
+            "type": "minecraft:explosion"
+          },
+          "large_particle": {
+            "type": "minecraft:explosion_emitter"
+          },
+          "sound": "minecraft:entity.generic.explode",
+          "damage_type": "minecraft:explosion"
+        },
+        "requirements": {
+          "condition": "minecraft:entity_properties",
+          "entity": "direct_attacker",
+          "predicate": {
+            "minecraft:entity_type": "#minecraft:arrows"
+          }
+        }
+      }
+    ]
+  }
+}

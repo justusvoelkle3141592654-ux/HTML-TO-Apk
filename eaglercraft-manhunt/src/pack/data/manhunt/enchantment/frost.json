@@ -1,0 +1,56 @@
+{
+  "description": {
+    "text": "Frost",
+    "color": "aqua"
+  },
+  "supported_items": "#minecraft:swords",
+  "weight": 1,
+  "max_level": 1,
+  "min_cost": {
+    "base": 1,
+    "per_level_above_first": 0
+  },
+  "max_cost": {
+    "base": 1,
+    "per_level_above_first": 0
+  },
+  "anvil_cost": 8,
+  "slots": [
+    "mainhand"
+  ],
+  "effects": {
+    "minecraft:post_attack": [
+      {
+        "enchanted": "attacker",
+        "affected": "victim",
+        "effect": {
+          "type": "minecraft:all_of",
+          "effects": [
+            {
+              "type": "minecraft:apply_mob_effect",
+              "to_apply": "minecraft:slowness",
+              "min_duration": 2,
+              "max_duration": 2,
+              "min_amplifier": 3,
+              "max_amplifier": 3
+            },
+            {
+              "type": "minecraft:apply_mob_effect",
+              "to_apply": "minecraft:mining_fatigue",
+              "min_duration": 2,
+              "max_duration": 2,
+              "min_amplifier": 1,
+              "max_amplifier": 1
+            },
+            {
+              "type": "minecraft:play_sound",
+              "sound": "minecraft:block.glass.break",
+              "volume": 0.6,
+              "pitch": 1.6
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

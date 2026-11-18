@@ -1,0 +1,132 @@
+{
+  "description": {
+    "text": "Blitzschlag",
+    "color": "yellow"
+  },
+  "supported_items": "#minecraft:swords",
+  "weight": 1,
+  "max_level": 1,
+  "min_cost": {
+    "base": 1,
+    "per_level_above_first": 0
+  },
+  "max_cost": {
+    "base": 1,
+    "per_level_above_first": 0
+  },
+  "anvil_cost": 8,
+  "slots": [
+    "mainhand"
+  ],
+  "effects": {
+    "minecraft:post_attack": [
+      {
+        "enchanted": "attacker",
+        "affected": "attacker",
+        "effect": {
+          "type": "minecraft:all_of",
+          "effects": [
+            {
+              "type": "minecraft:apply_mob_effect",
+              "to_apply": "minecraft:resistance",
+              "min_duration": 1,
+              "max_duration": 1,
+              "min_amplifier": 4,
+              "max_amplifier": 4
+            },
+            {
+              "type": "minecraft:apply_mob_effect",
+              "to_apply": "minecraft:fire_resistance",
+              "min_duration": 3,
+              "max_duration": 3,
+              "min_amplifier": 0,
+              "max_amplifier": 0
+            }
+          ]
+        },
+        "requirements": {
+          "condition": "minecraft:all_of",
+          "terms": [
+            {
+              "condition": "minecraft:inverted",
+              "term": {
+                "condition": "minecraft:entity_properties",
+                "entity": "attacker",
+                "predicate": {
+                  "minecraft:effects": {
+                    "minecraft:unluck": {}
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "enchanted": "attacker",
+        "affected": "victim",
+        "effect": {
+          "type": "minecraft:all_of",
+          "effects": [
+            {
+              "type": "minecraft:summon_entity",
+              "entity": "minecraft:lightning_bolt"
+            },
+            {
+              "type": "minecraft:play_sound",
+              "sound": "minecraft:item.trident.thunder",
+              "volume": 2,
+              "pitch": 1
+            }
+          ]
+        },
+        "requirements": {
+          "condition": "minecraft:all_of",
+          "terms": [
+            {
+              "condition": "minecraft:inverted",
+              "term": {
+                "condition": "minecraft:entity_properties",
+                "entity": "attacker",
+                "predicate": {
+                  "minecraft:effects": {
+                    "minecraft:unluck": {}
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "enchanted": "attacker",
+        "affected": "attacker",
+        "effect": {
+          "type": "minecraft:apply_mob_effect",
+          "to_apply": "minecraft:unluck",
+          "min_duration": 8,
+          "max_duration": 8,
+          "min_amplifier": 0,
+          "max_amplifier": 0
+        },
+        "requirements": {
+          "condition": "minecraft:all_of",
+          "terms": [
+            {
+              "condition": "minecraft:inverted",
+              "term": {
+                "condition": "minecraft:entity_properties",
+                "entity": "attacker",
+                "predicate": {
+                  "minecraft:effects": {
+                    "minecraft:unluck": {}
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

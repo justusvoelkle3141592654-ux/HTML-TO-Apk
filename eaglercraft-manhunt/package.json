@@ -1,0 +1,10 @@
+{
+  "name": "eaglercraft-manhunt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manhunt edition of Eaglercraft 26.2 (built-in data pack, command-block engine and Lua client mod)",
+  "scripts": {
+    "build": "node tools/build.js"
+  },
+  "license": "UNLICENSED"
+}
