@@ -33,7 +33,12 @@
             "type": "minecraft:explosion_emitter"
           },
           "sound": "minecraft:entity.generic.explode",
-          "damage_type": "minecraft:explosion"
+          "damage_type": "minecraft:explosion",
+          "offset": [
+            0.0,
+            1.0,
+            0.0
+          ]
         },
         "requirements": {
           "condition": "minecraft:entity_properties",
@@ -60,7 +65,12 @@
             "type": "minecraft:explosion_emitter"
           },
           "sound": "minecraft:entity.generic.explode",
-          "damage_type": "minecraft:explosion"
+          "damage_type": "minecraft:explosion",
+          "offset": [
+            0.0,
+            1.0,
+            0.0
+          ]
         },
         "requirements": {
           "condition": "minecraft:entity_properties",

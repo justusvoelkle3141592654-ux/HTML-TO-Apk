@@ -16,7 +16,8 @@ function generate(outDir, vanillaAssets) {
   const json = (rel, o) => files.set(rel, Buffer.from(JSON.stringify(o, null, 2)));
 
   // ---- engine structure
-  const st = compile(engine.modules);
+  const st = compile(engine.modules, { track: !!process.env.MH_TRACK });
+  if (process.env.MH_LAYOUT) fs.writeFileSync(process.env.MH_LAYOUT, JSON.stringify({ layout: st.layout, triggers: st.triggers }));
   files.set('data/manhunt/structure/engine.nbt', st.nbt);
 
   // ---- dialogs
@@ -38,7 +39,7 @@ function generate(outDir, vanillaAssets) {
   ]);
   dialog('roles', 'Rolle wählen', ['Rollen werden in der Lobby vor jeder Runde gewählt. Während einer Runde kannst du als Hunter einsteigen.'], [
     btn('Speedrunner', trig(A.ROLE_RUNNER), 'Besiege den Enderdrachen'), btn('Hunter', trig(A.ROLE_HUNTER), 'Töte den Speedrunner'),
-    btn('Zuschauer', trig(A.ROLE_SPECTATOR)), btn('Zufällige Rollen (Host)', trig(A.RANDOM_ROLES)), btn('Alle ohne Rolle → Hunter (Host)', trig(A.ALL_HUNTERS)),
+    btn('Zuschauer', trig(A.ROLE_SPECTATOR)), btn('Zufällige Rollen', trig(A.RANDOM_ROLES), 'Nur Host'), btn('Rest → Hunter', trig(A.ALL_HUNTERS), 'Nur Host: alle ohne Rolle werden Hunter'),
   ]);
   dialog('round', 'Runde', ['Der Host startet und beendet Runden.'], [
     btn('Runde starten', trig(A.START)), btn('Runde abbrechen', trig(A.ABORT)), btn('Zurück zur Lobby', trig(A.LOBBY)),
@@ -70,8 +71,8 @@ function generate(outDir, vanillaAssets) {
   dialog('world', 'Welt (Host)', ['Die Welt speichert automatisch.'], [
     btn('Tag', trig(A.WORLD_DAY)), btn('Wetter klar', trig(A.WORLD_CLEAR)),
     ...['Friedlich', 'Einfach', 'Normal', 'Schwer'].map((d, i) => btn('Schwierigkeit: ' + d, trig(A.WORLD_DIFF_BASE + i))),
-    btn('Lobby hierher verlegen', trig(A.WORLD_RELOBBY)), btn('Hunter-Arsenal neu aufbauen', trig(A.WORLD_REBUILD_CHEST)),
-    btn('Rollen & Rundendaten zurücksetzen', trig(A.WORLD_RESET_STATS)),
+    btn('Lobby hierher verlegen', trig(A.WORLD_RELOBBY)), btn('Arsenal neu aufbauen', trig(A.WORLD_REBUILD_CHEST)),
+    btn('Daten zurücksetzen', trig(A.WORLD_RESET_STATS), 'Rollen und Rundendaten zurücksetzen'),
   ], 2);
   json('data/minecraft/tags/dialog/pause_screen_additions.json', { values: ['manhunt:main'] });
   json('data/minecraft/tags/dialog/quick_actions.json', { values: ['manhunt:main'] });

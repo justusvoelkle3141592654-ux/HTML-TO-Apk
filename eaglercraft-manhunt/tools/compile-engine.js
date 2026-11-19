@@ -15,7 +15,7 @@ const WIDTH = 48;          // command blocks per row
 const SIZE_X = WIDTH + 1;  // + trigger column
 const DATA_VERSION = 4903;
 
-function compile(modules) {
+function compile(modules, opts = {}) {
   // ---- layout
   const placed = []; // {module, cmd, pos}
   const trig = {};
@@ -66,7 +66,7 @@ function compile(modules) {
       pos: T.list('int', b.pos.map(T.int)),
       state: T.int(state(name, { facing, conditional: 'false' })),
       nbt: T.compound({
-        id: T.string('minecraft:command_block'), Command: T.string(cmd), auto: T.byte(auto ? 1 : 0), TrackOutput: T.byte(0),
+        id: T.string('minecraft:command_block'), Command: T.string(cmd), auto: T.byte(auto ? 1 : 0), TrackOutput: T.byte(opts.track ? 1 : 0),
         powered: T.byte(0), conditionMet: T.byte(0), UpdateLastExecution: T.byte(1), SuccessCount: T.int(0),
       }),
     }));
@@ -88,7 +88,8 @@ function compile(modules) {
     blocks: T.list('compound', blocks),
     entities: T.list('compound', []),
   });
-  return { nbt: write('', root, true), size: [SIZE_X, 2, rows], blocks: placed.length };
+  return { nbt: write('', root, true), size: [SIZE_X, 2, rows], blocks: placed.length,
+    layout: placed.map((b) => ({ m: b.mod.name, p: b.pos, c: b.cmd.slice(0, 120) })), triggers: trig };
 }
 
 module.exports = { compile, WIDTH: SIZE_X };

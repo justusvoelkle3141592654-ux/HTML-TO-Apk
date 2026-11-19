@@ -35,6 +35,8 @@ const score = (name, obj) => ({ score: { name, objective: obj } });
 const RUN = 'if score #state mh.sys matches 1';
 const LOBBY = 'if score #state mh.sys matches 0';
 const ENDED = 'if score #state mh.sys matches 2';
+const NOT_RUN = 'unless score #state mh.sys matches 1';
+const NOT_LOBBY = 'unless score #state mh.sys matches 0';
 const T20 = 'if score #t20 mh.sys matches 0';
 const T10 = 'if score #t10 mh.sys matches 0';
 const T5 = 'if score #t5 mh.sys matches 0';
@@ -61,7 +63,7 @@ const OBJ = [
   ['mh.u_sb', 'minecraft.used:minecraft.lingering_potion'], ['mh.u_gh', 'minecraft.used:minecraft.fishing_rod'],
   ['mh.u_pt', 'minecraft.used:minecraft.potion'], ['mh.u_w1', 'minecraft.used:minecraft.wooden_sword'],
   ['mh.u_w2', 'minecraft.used:minecraft.stone_sword'], ['mh.u_w3', 'minecraft.used:minecraft.iron_sword'],
-  ['mh.u_w4', 'minecraft.used:minecraft.diamond_sword'],
+  ['mh.u_w4', 'minecraft.used:minecraft.diamond_sword'], ['mh.modt', 'dummy'], ['mh.ghs', 'minecraft.used:minecraft.fishing_rod'], ['mh.pullt', 'dummy'], ['mh.age', 'dummy'],
 ];
 for (const k of minedKeys) OBJ.push([statObj(k), 'minecraft.mined:minecraft.' + k]);
 for (const [k, crit] of C.XP_OTHER) OBJ.push(['mh.s_' + k, crit]);
@@ -153,11 +155,14 @@ add(
   'scoreboard players set @a[scores={mh.leave=1..}] mh.leave 0',
   'execute unless entity @a[tag=mh.admin] run tag @a[tag=mh.seen,limit=1,sort=arbitrary] add mh.admin',
   'scoreboard players set @a mh.adm 0', 'scoreboard players set @a[tag=mh.admin] mh.adm 1',
+  // the Manhunt client renews its "mod active" lease every second; Eaglercraft pauses Lua mods in
+  // shared (LAN) worlds, then the vanilla fallback (actionbar HUD, dialog menu) takes over
+  'scoreboard players remove @a[scores={mh.modt=1..}] mh.modt 1', 'tag @a[tag=mh.mod,scores={mh.modt=..0}] remove mh.mod',
 );
 use('main');
 add(
   'scoreboard players enable @a mh.act', 'scoreboard players enable @a mh.mod',
-  'tag @a[scores={mh.mod=1..}] add mh.mod', 'scoreboard players set @a[scores={mh.mod=1..}] mh.mod 0',
+  'tag @a[scores={mh.mod=1..}] add mh.mod', 'scoreboard players set @a[scores={mh.mod=1..}] mh.modt 3', 'scoreboard players set @a[scores={mh.mod=1..}] mh.mod 0',
 );
 
 // ------------------------------------------------------------------ 4. trigger actions
@@ -207,7 +212,7 @@ add(adminAct(A.ABORT, [
   `execute ${RUN} run scoreboard players set ${S('winner')} 3`,
 ]));
 add(adminAct(A.LOBBY, [
-  `execute unless ${LOBBY} run scoreboard players set ${S('tolobby')} 1`,
+  `execute ${NOT_LOBBY} run scoreboard players set ${S('tolobby')} 1`,
 ]));
 // settings: 20 + 2i = next value, 21 + 2i = previous value
 C.SETTINGS.forEach((s, i) => {
@@ -262,7 +267,7 @@ for (const p of purchases) {
 }
 // generic checks
 add(
-  `execute unless ${RUN} run tag @a[tag=mh.buy] add mh.badstate`,
+  `execute ${NOT_RUN} run tag @a[tag=mh.buy] add mh.badstate`,
   'tag @a[tag=mh.buy,tag=mh.out] add mh.badstate',
   'tag @a[tag=mh.buy,scores={mh.role=0}] add mh.badstate', 'tag @a[tag=mh.buy,scores={mh.role=3}] add mh.badstate',
   'execute as @a[tag=mh.buy] store result score @s mh.ni run clear @s minecraft:iron_ingot 0',
@@ -298,9 +303,9 @@ use('act_misc');
 add(
   `execute as ${act(A.ABILITY_USE1)} run tag @s add mh.ab1use`,
   `execute as ${act(A.ABILITY_USE2)} run tag @s add mh.ab2use`,
-  `execute unless ${RUN} as @a[tag=mh.ab1use] run ${msg('@s', 'Fähigkeiten gibt es nur während einer Runde.', 'red')}`,
-  `execute unless ${RUN} as @a[tag=mh.ab2use] run ${msg('@s', 'Fähigkeiten gibt es nur während einer Runde.', 'red')}`,
-  `execute unless ${RUN} run tag @a remove mh.ab1use`, `execute unless ${RUN} run tag @a remove mh.ab2use`,
+  `execute ${NOT_RUN} as @a[tag=mh.ab1use] run ${msg('@s', 'Fähigkeiten gibt es nur während einer Runde.', 'red')}`,
+  `execute ${NOT_RUN} as @a[tag=mh.ab2use] run ${msg('@s', 'Fähigkeiten gibt es nur während einer Runde.', 'red')}`,
+  `execute ${NOT_RUN} run tag @a remove mh.ab1use`, `execute ${NOT_RUN} run tag @a remove mh.ab2use`,
   `execute if score ${S('abil')} matches 0 as @a[tag=mh.ab1use] run ${msg('@s', 'Fähigkeiten sind in den Spielregeln deaktiviert.', 'red')}`,
   `execute if score ${S('abil')} matches 0 as @a[tag=mh.ab2use] run ${msg('@s', 'Fähigkeiten sind in den Spielregeln deaktiviert.', 'red')}`,
   `execute if score ${S('abil')} matches 0 run tag @a remove mh.ab1use`, `execute if score ${S('abil')} matches 0 run tag @a remove mh.ab2use`,
@@ -353,14 +358,14 @@ add(adminAct(A.WORLD_RELOBBY, [
   `execute ${LOBBY} at @a[scores={mh.act=${A.WORLD_RELOBBY}},tag=mh.admin,limit=1] run summon marker ~ ~ ~ {Tags:["mh.lobby"]}`,
   `execute ${LOBBY} run scoreboard players set ${S('lobbyok')} 0`,
   `execute ${LOBBY} run ${msg('@a', 'Lobby/Spawn wurde an die Position des Hosts verlegt.', 'green')}`,
-  `execute unless ${LOBBY} run ${msg('@a[tag=mh.admin]', 'Die Lobby kann nur zwischen den Runden verlegt werden.', 'red')}`,
+  `execute ${NOT_LOBBY} run ${msg('@a[tag=mh.admin]', 'Die Lobby kann nur zwischen den Runden verlegt werden.', 'red')}`,
 ]));
 add(adminAct(A.WORLD_REBUILD_CHEST, [`scoreboard players set ${S('chestbuild')} 1`, msg('@a', 'Hunter-Arsenal wird neu aufgebaut.', 'green')]));
 add(adminAct(A.WORLD_RESET_STATS, [
-  `execute unless ${RUN} run scoreboard players set @a mh.role 0`,
-  `execute unless ${RUN} run scoreboard players set ${S('tolobby')} 1`,
-  `execute unless ${RUN} run ${msg('@a', 'Manhunt-Rollen und Rundendaten wurden zurückgesetzt.', 'green')}`,
-  `execute if ${RUN} run ${msg('@a[tag=mh.admin]', 'Zuerst die laufende Runde abbrechen.', 'red')}`,
+  `execute ${NOT_RUN} run scoreboard players set @a mh.role 0`,
+  `execute ${NOT_RUN} run scoreboard players set ${S('tolobby')} 1`,
+  `execute ${NOT_RUN} run ${msg('@a', 'Manhunt-Rollen und Rundendaten wurden zurückgesetzt.', 'green')}`,
+  `execute ${RUN} run ${msg('@a[tag=mh.admin]', 'Zuerst die laufende Runde abbrechen.', 'red')}`,
 ]));
 add(`execute as ${act(A.OPEN_DIALOG)} run dialog show @s manhunt:main`);
 add(`execute as ${act(A.GRAPPLE)} if items entity @s weapon.mainhand *[custom_data~{mh:"grapple"}] run effect give @s minecraft:slow_falling 3 0 true`);
@@ -435,6 +440,9 @@ const startList = [
   'execute as @a at @s run playsound minecraft:event.raid.horn master @s ~ ~ ~ 0.6 1',
   tr('@a', [MH, { text: 'Die Runde beginnt! Speedrunner: ', color: 'yellow', bold: false }, { selector: '@a[team=mh.run]', color: 'green' }, { text: ' · Hunter: ', color: 'yellow' }, { selector: '@a[team=mh.hunt]', color: 'red' }]),
   'tag @a remove mh.welcomed',
+  `execute store result score ${S('diff')} run difficulty`,
+  `execute if score ${S('bots')} matches 1.. if score ${S('diff')} matches 0 run difficulty easy`,
+  `execute if score ${S('bots')} matches 1.. if score ${S('diff')} matches 0 run ${msg('@a', 'Schwierigkeit auf „Einfach“ gesetzt – auf „Friedlich“ verschwinden die Hunter-Bots.', 'gold')}`,
   `scoreboard players set ${S('startreq')} 0`,
 ];
 use('start'); add(startList);
@@ -469,10 +477,10 @@ use('death');
 add(when(RUN, [
   'execute as @a[scores={mh.died=1..}] run tag @s add mh.dead',
   'execute as @a[scores={mh.died=1..},team=mh.run] run scoreboard players remove @s mh.lives 1',
-  `execute as @a[scores={mh.died=1..},team=mh.run,scores={mh.lives=..0}] run scoreboard players remove ${S('rleft')} 1`,
-  'execute as @a[scores={mh.died=1..},team=mh.run,scores={mh.lives=..0}] run tag @s add mh.out',
-  `execute as @a[scores={mh.died=1..},team=mh.run,scores={mh.lives=..0}] run tellraw @a [{"text":"[Manhunt] ","color":"gold","bold":true},{"selector":"@s","color":"green"},{"text":" ist ausgeschieden!","color":"red","bold":false}]`,
-  `execute as @a[scores={mh.died=1..},team=mh.run,scores={mh.lives=1..}] run tellraw @a [{"text":"[Manhunt] ","color":"gold","bold":true},{"selector":"@s","color":"green"},{"text":" ist gestorben, verbleibende Leben: ","color":"yellow","bold":false},{"score":{"name":"@s","objective":"mh.lives"}}]`,
+  `execute as @a[scores={mh.died=1..,mh.lives=..0},team=mh.run] run scoreboard players remove ${S('rleft')} 1`,
+  'execute as @a[scores={mh.died=1..,mh.lives=..0},team=mh.run] run tag @s add mh.out',
+  `execute as @a[scores={mh.died=1..,mh.lives=..0},team=mh.run] run tellraw @a [{"text":"[Manhunt] ","color":"gold","bold":true},{"selector":"@s","color":"green"},{"text":" ist ausgeschieden!","color":"red","bold":false}]`,
+  `execute as @a[scores={mh.died=1..,mh.lives=1..},team=mh.run] run tellraw @a [{"text":"[Manhunt] ","color":"gold","bold":true},{"selector":"@s","color":"green"},{"text":" ist gestorben, verbleibende Leben: ","color":"yellow","bold":false},{"score":{"name":"@s","objective":"mh.lives"}}]`,
   `execute if score ${S('hresp')} matches 0 as @a[scores={mh.died=1..},team=mh.hunt] run tag @s add mh.out`,
   'scoreboard players set @a[scores={mh.died=1..}] mh.died 0',
   // respawned (health back above zero)
@@ -676,7 +684,8 @@ add(when(RUN, [
   `scoreboard players set ${S('botspawn')} 0`,
   `execute if score ${S('botcd')} matches 1.. run scoreboard players remove ${S('botcd')} 1`,
   `execute store result score ${S('botalive')} if entity @e[tag=mh.bot]`,
-  `execute if score ${S('hs')} matches 0 if score ${S('botcd')} matches 0 if score ${S('botalive')} < ${S('bots')} run scoreboard players set ${S('botgo')} 1`,
+  `execute store result score ${S('diff')} run difficulty`,
+  `execute if score ${S('hs')} matches 0 if score ${S('botcd')} matches 0 if score ${S('diff')} matches 1.. if score ${S('botalive')} < ${S('bots')} run scoreboard players set ${S('botgo')} 1`,
   `execute if score ${S('botgo')} matches 1 run scoreboard players add ${S('botn')} 1`,
   `execute if score ${S('botgo')} matches 1 run scoreboard players operation ${S('botarch')} = ${S('botn')}`,
   `execute if score ${S('botgo')} matches 1 run scoreboard players operation ${S('botarch')} %= #3 mh.c`,
@@ -752,7 +761,7 @@ const perPlayer = ['MHP', G('state'), P('mh.role'), P('mh.lvl'), P('mh.xp'), P('
   P('mh.tdim'), P('mh.tsame'), P('mh.tid'), G('hs'), G('time'), P('mh.adm'), P('mh.out'), P('mh.mkill'), P('mh.id')];
 const global = ['MHG', G('state'), G('time'), G('hs'), ...C.SETTINGS.map((s) => G(s.key)), G('winner'), G('duration'), G('tier'), G('botalive'), G('rleft')];
 use('main');
-add(`execute if score #t5 mh.sys matches 0 as @a[tag=mh.mod] run tellraw @s ${JSON.stringify(join(perPlayer))}`);
+add(`execute if score #t10 mh.sys matches 0 as @a[tag=mh.mod] run tellraw @s ${JSON.stringify(join(perPlayer))}`);
 use('p20');
 add(`tellraw @a[tag=mh.mod] ${JSON.stringify(join(global))}`);
 
@@ -794,6 +803,38 @@ add(when(RUN, [
 const lateConsts = [`scoreboard players set ${K('x60')} 60`, `scoreboard players set ${K(3)} 3`];
 modules.get('boot').unshift(...lateConsts);
 
+// ------------------------------------------------------------------ grappling hook (server side, works for every client)
+use('main');
+add(
+  'execute as @e[type=minecraft:fishing_bobber,tag=!mh.ghk] at @s unless block ~ ~-0.3 ~ #minecraft:replaceable run tag @s add mh.ghc',
+  'execute as @e[type=minecraft:fishing_bobber,tag=mh.ghc] at @s as @p[distance=..40,gamemode=!spectator] if items entity @s weapon.mainhand *[custom_data~{mh:"grapple"}] at @s run kill @e[type=minecraft:marker,tag=mh.anchor,distance=..64]',
+  'execute as @e[type=minecraft:fishing_bobber,tag=mh.ghc] at @s as @p[distance=..40,gamemode=!spectator] if items entity @s weapon.mainhand *[custom_data~{mh:"grapple"}] run summon minecraft:marker ~ ~ ~ {Tags:["mh.anchor"]}',
+  'execute as @e[type=minecraft:fishing_bobber,tag=mh.ghc] at @s as @p[distance=..40,gamemode=!spectator] if items entity @s weapon.mainhand *[custom_data~{mh:"grapple"}] run scoreboard players set @s mh.ghs 0',
+  'execute as @e[type=minecraft:fishing_bobber,tag=mh.ghc] at @s as @p[distance=..40,gamemode=!spectator] if items entity @s weapon.mainhand *[custom_data~{mh:"grapple"}] run tag @s add mh.ghooked',
+  'tag @e[type=minecraft:fishing_bobber,tag=mh.ghc] add mh.ghk', 'tag @e[type=minecraft:fishing_bobber,tag=mh.ghc] remove mh.ghc',
+  'scoreboard players set @a[tag=mh.ghooked,scores={mh.ghs=1..}] mh.pullt 30',
+  'tag @a[tag=mh.ghooked,scores={mh.ghs=1..}] add mh.pull',
+  'tag @a[tag=mh.pull] remove mh.ghooked',
+  'scoreboard players set @a[scores={mh.ghs=1..},tag=!mh.ghooked] mh.ghs 0',
+);
+use('grapple');
+add(
+  'scoreboard players remove @a[tag=mh.pull] mh.pullt 1',
+  'execute as @a[tag=mh.pull] at @s unless entity @e[type=minecraft:marker,tag=mh.anchor,distance=..48] run tag @s add mh.pulldone',
+  'execute as @a[tag=mh.pull] at @s if entity @e[type=minecraft:marker,tag=mh.anchor,distance=..1.8] run tag @s add mh.pulldone',
+  'execute as @a[tag=mh.pull,tag=!mh.pulldone] at @s facing entity @e[type=minecraft:marker,tag=mh.anchor,sort=nearest,limit=1] feet positioned ^ ^ ^1.1 unless block ~ ~ ~ #minecraft:replaceable run tag @s add mh.pulldone',
+  'execute as @a[tag=mh.pull,tag=!mh.pulldone] at @s facing entity @e[type=minecraft:marker,tag=mh.anchor,sort=nearest,limit=1] feet positioned ^ ^ ^1.1 unless block ~ ~1 ~ #minecraft:replaceable run tag @s add mh.pulldone',
+  'execute as @a[tag=mh.pull,tag=!mh.pulldone] at @s facing entity @e[type=minecraft:marker,tag=mh.anchor,sort=nearest,limit=1] feet run tp @s ^ ^ ^1.1',
+  'execute as @a[tag=mh.pull,tag=!mh.pulldone] at @s run particle minecraft:crit ~ ~1 ~ 0.2 0.2 0.2 0 2',
+  'tag @a[tag=mh.pull,scores={mh.pullt=..0}] add mh.pulldone',
+  'execute as @a[tag=mh.pulldone] run effect give @s minecraft:slow_falling 2 0 true',
+  'execute as @a[tag=mh.pulldone] at @s run playsound minecraft:entity.fishing_bobber.retrieve player @a ~ ~ ~ 1 0.8',
+  'execute as @a[tag=mh.pulldone] at @s run kill @e[type=minecraft:marker,tag=mh.anchor,sort=nearest,limit=1]',
+  'tag @a[tag=mh.pulldone] remove mh.pull', 'tag @a remove mh.pulldone',
+);
+use('p20');
+add('scoreboard players add @e[type=minecraft:marker,tag=mh.anchor] mh.age 1', 'kill @e[type=minecraft:marker,tag=mh.anchor,scores={mh.age=20..}]');
+
 // ------------------------------------------------------------------ dispatch (main starts modules)
 use('main');
 add(
@@ -817,6 +858,7 @@ add(
   `execute if score ${S('sendres')} matches 1 run ${fire('results')}`,
   `execute if entity @a[tag=mh.wantres] run ${fire('results')}`,
   `execute if score ${S('tolobby')} matches 1 run ${fire('lobby')}`,
+  `execute if entity @a[tag=mh.pull] run ${fire('grapple')}`,
 );
 
 const MODULES = [...modules].map(([name, commands]) => ({ name, commands }));

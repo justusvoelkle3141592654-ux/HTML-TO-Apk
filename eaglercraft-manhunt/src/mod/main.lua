@@ -52,6 +52,7 @@ local function act(n)
   chat.command("trigger mh.act set " .. tostring(n))
 end
 local function num(s) return tonumber(s) or 0 end
+local function cleanName(n) return (tostring(n or ""):gsub("^%[[%a]+%] ", "")) end
 
 local P_KEYS = { "state", "role", "lvl", "xp", "need", "xpt", "swm", "sws", "bpw", "bpu", "bfl", "bxb", "arm", "cd1", "cd2",
   "ab1", "ab2", "lives", "kills", "tx", "tz", "tdim", "tsame", "tid", "hs", "time", "adm", "out", "mkill", "id" }
@@ -80,7 +81,7 @@ local function onSync(kind, f)
     lastG = now()
     setup.phase = 9 -- engine answers: installed
   elseif kind == "MHL" then
-    local name = f[2]
+    local name = cleanName(f[2])
     roster[name] = { role = num(f[3]), lvl = num(f[4]), kills = num(f[5]), xpt = num(f[6]), out = num(f[7]), id = num(f[8]),
       lives = num(f[9]), adm = num(f[10]), seen = now() }
   elseif kind == "MHW" then
@@ -89,7 +90,7 @@ local function onSync(kind, f)
     pendingRes = { winner = num(f[2]), duration = num(f[3]), rows = {} }
   elseif kind == "MHE" then
     if pendingRes then
-      local r = { name = f[2] }
+      local r = { name = cleanName(f[2]) }
       local keys = { "role", "lvl", "xpt", "kills", "mkill", "w1", "w2", "w3", "w4", "bow", "xb", "gs", "cs", "ns", "tp", "sb", "gh", "pt", "out" }
       for i, k in ipairs(keys) do r[k] = num(f[i + 2]) end
       pendingRes.rows[#pendingRes.rows + 1] = r
@@ -112,7 +113,8 @@ on("chat_receive", function(e)
     return
   end
   -- hide feedback of the menu's own trigger commands and of the automatic setup
-  if m:match("^Triggered %[mh%.") or m:match("^Changed the block") or m:match("^Unknown scoreboard objective 'mh%.") then e:cancel(); return end
+  if m:match("^Triggered %[mh%.") or m:match("^Changed the block") or m:match("^Unknown scoreboard objective 'mh%.")
+    or m:match("^You cannot trigger this objective yet") then e:cancel(); return end
   if setup.phase > 0 and setup.phase < 9 then
     if m:match("^Unknown or incomplete command") or m:match("permission") or m:match("^Incorrect argument") then
       setup.failed = true
@@ -174,7 +176,7 @@ end
 
 local function worldTick()
   worldTicks = worldTicks + 1
-  if worldTicks == 30 or (worldTicks > 30 and worldTicks - announced >= (lastP < 0 and 40 or 600)) then
+  if (worldTicks == 30 or (worldTicks > 30 and worldTicks - announced >= 20)) and (player.health() or 0) > 0 then
     announced = worldTicks
     chat.command("trigger mh.mod set 1")
   end
@@ -250,9 +252,9 @@ on("tick", function()
   end
   inWorld = iw
   if menuOpen and game.screen() == nil then menuOpen = false end
+  if menuOpen and menuScreen and ticks % 20 == 0 then pcall(function() menuScreen:rebuild() end) end
   if not iw then return end
   worldTick()
-  grappleTick()
 end)
 
 -- ------------------------------------------------------------------ HUD
@@ -667,7 +669,9 @@ function openResults()
     for i, row in ipairs(r.rows) do
       local y = 54 + i * 11
       if y > s.height - 34 then break end
-      ctx:text(row.name, 16, y, roleColor(row.role))
+      local nm = row.name
+      while #nm > 3 and ctx:textWidth(nm) > 90 do nm = nm:sub(1, #nm - 1) end
+      ctx:text(nm, 16, y, roleColor(row.role))
       ctx:text(roleName(row.role) .. (row.out == 1 and "†" or ""), 110, y, roleColor(row.role))
       ctx:text(tostring(row.lvl), 170, y, 0xFFFFFFFF)
       ctx:text(tostring(row.xpt), 196, y, 0xFFFFFFFF)

@@ -44,7 +44,9 @@ const wbase = (key, extraLore = []) => [data({ mh: key }), `item_name=${txt(W[ke
   lore([[W[key].desc, 'gray'], ...extraLore, ['Manhunt-Sonderwaffe', 'dark_purple']])];
 
 function potion(id, key, color, effects) {
-  return item(id, [...wbase(key), `potion_contents={custom_color:${color},custom_effects:[${effects.join(',')}]}`]);
+  // potions compute their display name from the contents, so they need custom_name instead of item_name
+  const comps = wbase(key).map((c) => c.replace(/^item_name=/, 'custom_name='));
+  return item(id, [...comps, 'max_stack_size=4', `potion_contents={custom_color:${color},custom_effects:[${effects.join(',')}]}`]);
 }
 
 const WEAPON_ITEMS = {
