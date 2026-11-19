@@ -24,6 +24,10 @@ Die „Manhunt-Welt“ wird beim allerersten Öffnen der Datei mit zufälligem S
 Minecraft-Welt gespeichert. Auch eine selbst erstellte Welt wird automatisch zur Manhunt-Welt,
 wenn beim Erstellen **„Allow Cheats: ON“** gewählt wurde (die automatische Einrichtung braucht Befehlsrechte).
 
+## Als Webserver
+
+Siehe `web/README.md`: `node web/server.js` startet einen Server auf Port 8080.
+
 ## Multiplayer (Shared World)
 
 - **Host:** ESC → *Open to LAN* → *Relay LAN: ON* → *Apply Changes*. Den angezeigten Join-Code weitergeben.
